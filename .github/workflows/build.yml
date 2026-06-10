@@ -6,9 +6,8 @@ on:
   workflow_dispatch:
   workflow_call:
 
-# Serialize builds (no cancel: a signing run must not be killed mid-flight). Fixed group string:
-# github.workflow would differ between a main push ("build") and the weekly workflow_call
-# ("weekly-rebuild"), letting the two race on tags.
+# Serialize builds: the fixed group covers both a main push and the weekly workflow_call
+# (github.workflow differs between them); no cancel — a signing run must finish.
 concurrency:
   group: image-build
   cancel-in-progress: false
@@ -48,10 +47,9 @@ jobs:
           tags: |
             type=raw,value=v{{date 'YYYYMMDD'}}
             type=sha
-      # 1) Push by digest ONLY (no public tags): an unscanned artifact gets no consumable tags before
-      #    the gate. SBOM+provenance are attached to the digest.
-      #    Deliberately NO layer cache: the weekly rebuild exists to pull fresh apt patches (a cache
-      #    would serve stale layers), and the signed artifact must not be assembled from a poisonable cache.
+      # 1) Push by digest ONLY — no consumable tags until the gates pass. Deliberately uncached:
+      #    the weekly rebuild must pull fresh apt patches, and the signed artifact must not be
+      #    assembled from a poisonable cache.
       - id: build
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
         with:
@@ -61,8 +59,30 @@ jobs:
           sbom: true              # SBOM attestation (SPDX)
           provenance: mode=max    # SLSA provenance attestation (targets Build L3)
 
-      # 2) Smoke-test the exact published artifact (by digest, still untagged) — the PR build is
-      #    a different build of the same inputs.
+      # The ~4 GiB builder cache is dead weight past the push.
+      - name: Reclaim build cache
+        run: |
+          set -euo pipefail
+          docker buildx prune -af >/dev/null
+          df -h / | tail -1
+
+      # 2) CVE gate on the exact published digest. Runs before the smoke tests, streaming from the
+      #    registry (image-src=remote) — no ~4 GiB docker-export to /tmp. Registry auth comes from
+      #    the docker/login-action step above; removing that step breaks the untagged-digest pull.
+      - name: Trivy scan (gate by digest)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        env:
+          # No "new version available" notices / phone-home from the gate; trivy version comes from the action pin.
+          TRIVY_SKIP_VERSION_CHECK: "true"
+          TRIVY_IMAGE_SRC: "remote"
+        with:
+          image-ref: ghcr.io/tempusbuild/runner-ubuntu-24.04@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: "true"
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"
+
+      # 3) Smoke-test the same digest — the PR build is a different build of the same inputs.
       - name: Smoke tests (by digest)
         env:
           IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
@@ -72,23 +92,8 @@ jobs:
           docker run --rm -v "$PWD/tests:/tests:ro" "${IMAGE}@${DIGEST}" \
             bash -c 'for t in /tests/*.sh; do echo "== $t =="; bash "$t"; done'
 
-      # 3) Scan the exact published artifact (by digest, still untagged) — the gate before tagging.
-      #    Registry auth comes from the docker/login-action step above (~/.docker/config.json) —
-      #    do not move/remove that step or the pull of the untagged digest breaks.
-      - name: Trivy scan (gate by digest)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
-        env:
-          # No "new version available" notices / phone-home from the gate; trivy version comes from the action pin.
-          TRIVY_SKIP_VERSION_CHECK: "true"
-        with:
-          image-ref: ghcr.io/tempusbuild/runner-ubuntu-24.04@${{ steps.build.outputs.digest }}
-          severity: HIGH,CRITICAL
-          ignore-unfixed: "true"
-          trivyignores: .trivyignore.yaml
-          exit-code: "1"
-
-      # 4) Only on green tests+scan — apply public tags to the scanned digest (no rebuild). This way
-      #    consumable tags (vYYYYMMDD/sha) NEVER point at an image that did not pass the gate.
+      # 4) Only after green gates — apply public tags to the same digest (no rebuild), so
+      #    consumable tags NEVER point at an image that did not pass.
       - name: Tag scanned digest
         env:
           IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
@@ -101,7 +106,7 @@ jobs:
             docker buildx imagetools create --tag "$tag" "${IMAGE}@${DIGEST}"
           done <<< "$TAGS"
 
-      # 5) Sign + immediate verify (proves the Rekor entry) — by digest.
+      # 5) Sign by digest + immediate verify (proves the Rekor entry).
       - name: Sign and verify (cosign keyless / OIDC)
         env:
           IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
