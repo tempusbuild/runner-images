@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:87999aa3d42bdc6bea60565083ee17e86d1f3339802f543c0d03998580f9cb89
 # Ubuntu 24.04 runner image for ARC gha-runner-scale-set (label tempus-ubuntu-24.04-4core):
 # runner-agent + base CI toolchain.
 # Base pinned by digest; bump on weekly rebuild via `docker buildx imagetools inspect`.
