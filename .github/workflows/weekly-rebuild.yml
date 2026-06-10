@@ -17,7 +17,6 @@ jobs:
       packages: write       # push image to ghcr (in build.yml)
       id-token: write       # cosign keyless + Sigstore attestations (in build.yml)
       attestations: write   # GitHub artifact attestations (in build.yml)
-      artifact-metadata: write   # storage records for registry attestations (in build.yml)
     uses: ./.github/workflows/build.yml
 
   notify-failure:
