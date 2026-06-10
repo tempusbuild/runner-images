@@ -14,6 +14,14 @@ jobs:
     name: Weekly rebuild
     permissions:
       contents: read
-      packages: write   # push image to ghcr (in build.yml)
-      id-token: write   # cosign keyless + SLSA provenance (in build.yml)
+      packages: write       # push image to ghcr (in build.yml)
+      id-token: write       # cosign keyless + Sigstore attestations (in build.yml)
+      attestations: write   # GitHub artifact attestations (in build.yml)
     uses: ./.github/workflows/build.yml
+
+  notify-failure:
+    needs: rebuild
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write   # failure issue (in notify-failure.yml)
+    uses: ./.github/workflows/notify-failure.yml

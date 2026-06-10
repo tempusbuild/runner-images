@@ -15,6 +15,9 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           persist-credentials: false
@@ -35,6 +38,9 @@ jobs:
     name: Build and test (full)
     runs-on: ubuntu-latest
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           persist-credentials: false
@@ -49,6 +55,27 @@ jobs:
           tags: tempusbuild/runner-ubuntu-24.04:pr
           cache-from: type=gha,scope=full
           cache-to: type=gha,scope=full,mode=max
+      - name: Image size gate
+        env:
+          MAX_BYTES: "5000000000"   # budget; CI-measured size ~4.06 GiB
+        run: |
+          set -euo pipefail
+          size=$(docker image inspect tempusbuild/runner-ubuntu-24.04:pr --format '{{.Size}}')
+          printf 'full image size: %s (budget %s)\n' "$(numfmt --to=iec "$size")" "$(numfmt --to=iec "$MAX_BYTES")" >> "$GITHUB_STEP_SUMMARY"
+          [ "$size" -le "$MAX_BYTES" ] || { echo "image size $size exceeds budget $MAX_BYTES" >&2; exit 1; }
+      # DKL-DI-0001 (sudo) is ignored: passwordless sudo is the runner-image contract.
+      - name: Dockle (CIS image lint)
+        run: |
+          set -euo pipefail
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            goodwithtech/dockle:v0.4.15@sha256:eade932f793742de0aa8755406c7677cd7696f8675b6180926f7eeffa7abe6b9 \
+            --exit-code 1 -i DKL-DI-0001 tempusbuild/runner-ubuntu-24.04:pr
+      - name: Dive (layer efficiency)
+        run: |
+          set -euo pipefail
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -e CI=true \
+            wagoodman/dive:v0.13.1@sha256:f1886e6c32c094fc41a623c1989f5cb3e48aa766da5f0be233f911fc1d85ce10 \
+            --ci tempusbuild/runner-ubuntu-24.04:pr
       - name: Smoke tests
         run: |
           docker run --rm -v "$PWD/tests:/tests:ro" tempusbuild/runner-ubuntu-24.04:pr \
@@ -68,6 +95,9 @@ jobs:
     name: Build and test (minimal)
     runs-on: ubuntu-latest
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: audit
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           persist-credentials: false
@@ -80,6 +110,26 @@ jobs:
           tags: tempusbuild/runner-ubuntu-24.04-minimal:pr
           cache-from: type=gha,scope=minimal
           cache-to: type=gha,scope=minimal,mode=max
+      - name: Image size gate
+        env:
+          MAX_BYTES: "1000000000"   # budget; CI-measured size ~815 MiB
+        run: |
+          set -euo pipefail
+          size=$(docker image inspect tempusbuild/runner-ubuntu-24.04-minimal:pr --format '{{.Size}}')
+          printf 'minimal image size: %s (budget %s)\n' "$(numfmt --to=iec "$size")" "$(numfmt --to=iec "$MAX_BYTES")" >> "$GITHUB_STEP_SUMMARY"
+          [ "$size" -le "$MAX_BYTES" ] || { echo "image size $size exceeds budget $MAX_BYTES" >&2; exit 1; }
+      - name: Dockle (CIS image lint)
+        run: |
+          set -euo pipefail
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            goodwithtech/dockle:v0.4.15@sha256:eade932f793742de0aa8755406c7677cd7696f8675b6180926f7eeffa7abe6b9 \
+            --exit-code 1 -i DKL-DI-0001 tempusbuild/runner-ubuntu-24.04-minimal:pr
+      - name: Dive (layer efficiency)
+        run: |
+          set -euo pipefail
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -e CI=true \
+            wagoodman/dive:v0.13.1@sha256:f1886e6c32c094fc41a623c1989f5cb3e48aa766da5f0be233f911fc1d85ce10 \
+            --ci tempusbuild/runner-ubuntu-24.04-minimal:pr
       - name: Smoke tests
         # minimal has no node/docker/python/unzip — the shared /tests/*.sh does not fit it. Run only
         # runner-agent + the base tool set (what minimal actually contains).
