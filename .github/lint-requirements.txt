@@ -12,9 +12,9 @@ distlib==0.4.2 \
     --hash=sha256:baeb401c90f27acd15c4861ae0847d1e731c27ac3dbf4210643ba61fa1e813db \
     --hash=sha256:ca4cb11e5d746b5ec13c199cbf19ae27a241f89702b54e153a74332955446067
     # via virtualenv
-filelock==3.29.1 \
-    --hash=sha256:85199dfd706869641b72b2e8955d5416a4b2b7dc4b0e8e6d97b4cc1299a6983b \
-    --hash=sha256:d97e6b1b9757569626c58caa07dc4beb1613f4a2938b1e8cc81afca398906c9e
+filelock==3.29.2 \
+    --hash=sha256:779d2f5443b584750c6b90457abffd49235bfb0e66ce82ef5a680867e518ca1c \
+    --hash=sha256:f5d3feb44b2b8824832587543af5226822fe86baf086678ede47aa177fe47ca5
     # via
     #   python-discovery
     #   virtualenv
