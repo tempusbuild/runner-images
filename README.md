@@ -2,7 +2,11 @@
 
 [![test](https://github.com/tempusbuild/runner-images/actions/workflows/test.yml/badge.svg)](https://github.com/tempusbuild/runner-images/actions/workflows/test.yml)
 [![build](https://github.com/tempusbuild/runner-images/actions/workflows/build.yml/badge.svg)](https://github.com/tempusbuild/runner-images/actions/workflows/build.yml)
+[![weekly-rebuild](https://github.com/tempusbuild/runner-images/actions/workflows/weekly-rebuild.yml/badge.svg)](https://github.com/tempusbuild/runner-images/actions/workflows/weekly-rebuild.yml)
+[![codeql](https://github.com/tempusbuild/runner-images/actions/workflows/codeql.yml/badge.svg)](https://github.com/tempusbuild/runner-images/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/tempusbuild/runner-images/badge)](https://scorecard.dev/viewer/?uri=github.com/tempusbuild/runner-images)
+[![license](https://img.shields.io/github/license/tempusbuild/runner-images)](LICENSE)
+[![ghcr](https://img.shields.io/badge/ghcr.io-runner--ubuntu--24.04-blue?logo=docker&logoColor=white)](https://github.com/tempusbuild/runner-images/pkgs/container/runner-ubuntu-24.04)
 
 Docker images for self-hosted GitHub Actions runners for [tempus.build](https://tempus.build) —
 running GitHub Actions workflows on our infrastructure via ARC `gha-runner-scale-set`.
