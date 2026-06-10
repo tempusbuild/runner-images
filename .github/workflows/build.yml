@@ -24,7 +24,6 @@ jobs:
       packages: write       # push image to ghcr
       id-token: write       # cosign keyless (Fulcio OIDC) + Sigstore attestations
       attestations: write   # GitHub artifact attestations (SBOM + provenance)
-      artifact-metadata: write   # storage records for registry attestations
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
         with:
@@ -121,7 +120,8 @@ jobs:
             "${IMAGE}@${DIGEST}"
 
       # 6) GitHub artifact attestations: Sigstore-signed SBOM + build provenance (verification
-      #    documented in SECURITY.md).
+      #    documented in SECURITY.md). Storage records are off — broken for registry images
+      #    (actions/attest#401).
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
         with:
           image: ghcr.io/tempusbuild/runner-ubuntu-24.04@${{ steps.build.outputs.digest }}
@@ -134,8 +134,10 @@ jobs:
           subject-digest: ${{ steps.build.outputs.digest }}
           sbom-path: sbom.spdx.json
           push-to-registry: true
+          create-storage-record: false
       - uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26  # v4.1.0
         with:
           subject-name: ghcr.io/tempusbuild/runner-ubuntu-24.04
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
+          create-storage-record: false
