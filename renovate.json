@@ -33,6 +33,23 @@
       "pinDigests": true
     },
     {
+      "description": "The image IS ubuntu-24.04 by design — a new Ubuntu major is a new image, not a bump. Digest/patch updates of 24.04 stay enabled.",
+      "matchDepNames": ["ubuntu"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "mdformat major is plugin-blocked: mdformat-tables still requires mdformat<0.8, and Renovate does not manage additional_dependencies — bump the hook and its plugins together manually once they support 1.x.",
+      "matchDepNames": ["executablebooks/mdformat"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Rust tracks the official runner image (parity contract), not upstream releases — no auto-PRs; approve from the Dependency Dashboard once actions/runner-images ships the new toolchain.",
+      "matchDepNames": ["rust-lang/rust"],
+      "dependencyDashboardApproval": true
+    },
+    {
       "description": "NODE_MAJOR: LTS (even) majors only.",
       "matchDepNames": ["node"],
       "allowedVersions": "/^\\d*[02468]$/"
