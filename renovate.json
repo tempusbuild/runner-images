@@ -141,6 +141,16 @@
       "depNameTemplate": "rust-lang/rustup",
       "datasourceTemplate": "github-tags",
       "versioningTemplate": "semver"
+    },
+    {
+      "description": "Pinned tool images (dockle, dive) inside workflow run: blocks.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
+      "matchStrings": [
+        "(?<depName>goodwithtech/dockle|wagoodman/dive):(?<currentValue>v[\\d.]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
     }
   ]
 }

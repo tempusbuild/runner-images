@@ -49,8 +49,7 @@ docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --format '{{ json .Provena
 ```
 
 The cryptographic trust anchor is the cosign signature from step 1: it covers the image by
-`@${DIGEST}`, and provenance and SBOM are attached to the same digest. (cosign-signed attestations on
-top are on the roadmap; `verify-attestation` does not apply to them yet.)
+`@${DIGEST}`, and provenance and SBOM are attached to the same digest.
 
 ### 3. SBOM (SPDX)
 
@@ -58,6 +57,15 @@ The SBOM (SPDX) is also attached by BuildKit (`sbom: true`) as an attestation to
 
 ```sh
 docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --format '{{ json .SBOM }}' | jq .
+```
+
+### 4. GitHub artifact attestations (signed SBOM + provenance)
+
+The build additionally records **Sigstore-signed attestations** (SPDX SBOM and build provenance) in
+the GitHub attestation API and pushes them to the registry. Verify with the `gh` CLI:
+
+```sh
+gh attestation verify "oci://${IMAGE}@${DIGEST}" --owner tempusbuild
 ```
 
 ## Vulnerability (CVE) policy

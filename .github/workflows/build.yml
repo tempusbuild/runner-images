@@ -22,9 +22,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write   # push image to ghcr
-      id-token: write   # cosign keyless (Fulcio OIDC) + SLSA provenance attestation
+      packages: write       # push image to ghcr
+      id-token: write       # cosign keyless (Fulcio OIDC) + Sigstore attestations
+      attestations: write   # GitHub artifact attestations (SBOM + provenance)
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: audit   # build an egress baseline first; switch to block once stable
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
         with:
           persist-credentials: false
@@ -57,7 +61,18 @@ jobs:
           sbom: true              # SBOM attestation (SPDX)
           provenance: mode=max    # SLSA provenance attestation (targets Build L3)
 
-      # 2) Scan the exact published artifact (by digest, still untagged) — the gate before tagging.
+      # 2) Smoke-test the exact published artifact (by digest, still untagged) — the PR build is
+      #    a different build of the same inputs.
+      - name: Smoke tests (by digest)
+        env:
+          IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD/tests:/tests:ro" "${IMAGE}@${DIGEST}" \
+            bash -c 'for t in /tests/*.sh; do echo "== $t =="; bash "$t"; done'
+
+      # 3) Scan the exact published artifact (by digest, still untagged) — the gate before tagging.
       #    Registry auth comes from the docker/login-action step above (~/.docker/config.json) —
       #    do not move/remove that step or the pull of the untagged digest breaks.
       - name: Trivy scan (gate by digest)
@@ -72,8 +87,8 @@ jobs:
           trivyignores: .trivyignore.yaml
           exit-code: "1"
 
-      # 3) Only on a green scan — apply public tags to the scanned digest (no rebuild). This way
-      #    consumable tags (vYYYYMMDD/sha) NEVER point at an image that did not pass the scan.
+      # 4) Only on green tests+scan — apply public tags to the scanned digest (no rebuild). This way
+      #    consumable tags (vYYYYMMDD/sha) NEVER point at an image that did not pass the gate.
       - name: Tag scanned digest
         env:
           IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
@@ -86,7 +101,7 @@ jobs:
             docker buildx imagetools create --tag "$tag" "${IMAGE}@${DIGEST}"
           done <<< "$TAGS"
 
-      # 4) Sign + immediate verify (proves the Rekor entry) — by digest.
+      # 5) Sign + immediate verify (proves the Rekor entry) — by digest.
       - name: Sign and verify (cosign keyless / OIDC)
         env:
           IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
@@ -98,3 +113,23 @@ jobs:
             --certificate-identity-regexp '^https://github\.com/tempusbuild/runner-images/\.github/workflows/build\.yml@refs/heads/main$' \
             --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
             "${IMAGE}@${DIGEST}"
+
+      # 6) GitHub artifact attestations: Sigstore-signed SBOM + build provenance (verification
+      #    documented in SECURITY.md).
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
+        with:
+          image: ghcr.io/tempusbuild/runner-ubuntu-24.04@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: false
+      - uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e  # v4.1.0
+        with:
+          subject-name: ghcr.io/tempusbuild/runner-ubuntu-24.04
+          subject-digest: ${{ steps.build.outputs.digest }}
+          sbom-path: sbom.spdx.json
+          push-to-registry: true
+      - uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32  # v4.1.0
+        with:
+          subject-name: ghcr.io/tempusbuild/runner-ubuntu-24.04
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true

@@ -1,0 +1,29 @@
+name: notify-failure
+
+# Cron failures are easy to miss, and a broken weekly rebuild means security patches stop
+# flowing. github.workflow here resolves to the CALLER's workflow name.
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  issue:
+    name: Open or update failure issue
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write   # create/comment the failure issue
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: "Scheduled ${{ github.workflow }} run failed"
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          existing="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --search "in:title \"$TITLE\"" --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "Another failure: $RUN_URL"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITLE" --label ci --body "Run: $RUN_URL"
+          fi

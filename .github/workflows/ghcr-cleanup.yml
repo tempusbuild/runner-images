@@ -1,0 +1,38 @@
+name: ghcr-cleanup
+
+# Untagged versions pile up from digest pushes and weekly rebuilds. The action is referrer-aware:
+# signatures, SBOM and provenance attached to tagged digests are kept.
+on:
+  schedule:
+    - cron: "23 4 2 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ghcr-cleanup
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  cleanup:
+    name: Delete untagged versions
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write   # delete untagged container versions
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
+        with:
+          egress-policy: audit
+      - uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f  # v1.2.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          package: runner-ubuntu-24.04
+          delete-untagged: true
+          validate: true
+
+  notify-failure:
+    needs: cleanup
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write   # failure issue (in notify-failure.yml)
+    uses: ./.github/workflows/notify-failure.yml
