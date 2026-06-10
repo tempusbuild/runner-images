@@ -1,0 +1,126 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":pinDigests",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "timezone": "Etc/UTC",
+  "pre-commit": {
+    "enabled": true
+  },
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "prHourlyLimit": 2,
+  "prConcurrentLimit": 5,
+  "dependencyDashboard": true,
+  "configMigration": true,
+  "packageRules": [
+    {
+      "description": "GHA actions: pin by SHA, tag comment auto-updated (pinGitHubActionDigests), grouped.",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "pinDigests": true
+    },
+    {
+      "description": "Base-image digest in the FROM of both Dockerfiles — keep the pinned sha256 current (ubuntu:24.04 minor patches).",
+      "matchManagers": ["dockerfile"],
+      "matchPackageNames": ["ubuntu"],
+      "groupName": "base-image ubuntu-24.04",
+      "pinDigests": true
+    },
+    {
+      "description": "NODE_MAJOR: LTS (even) majors only.",
+      "matchDepNames": ["node"],
+      "allowedVersions": "/^\\d*[02468]$/"
+    },
+    {
+      "description": "Baked Python/Go toolcache minors stay patch-current only; adding/dropping a minor is a deliberate Dockerfile change (new ARG + SHA256), not a Renovate bump.",
+      "matchDepNames": ["actions/python-versions", "go"],
+      "matchUpdateTypes": ["minor", "major"],
+      "enabled": false
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "ARG RUNNER_VERSION in both Dockerfiles → actions/runner releases (github-releases). NOTE: this manager does NOT bump RUNNER_SHA256 — re-verify the hash manually after a version bump.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG RUNNER_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "actions/runner",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG NPM_VERSION in ubuntu-24.04/Dockerfile → the npm package (npm datasource).",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG NPM_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "npm",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "description": "ARG NODE_MAJOR in ubuntu-24.04/Dockerfile → node major only (extractVersion strips minor.patch; allowedVersions in packageRules keeps it on even/LTS majors).",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG NODE_MAJOR=(?<currentValue>\\d+)"
+      ],
+      "depNameTemplate": "node",
+      "datasourceTemplate": "node-version",
+      "extractVersionTemplate": "^(?<version>\\d+)",
+      "versioningTemplate": "loose"
+    },
+    {
+      "description": "ARG PYTHON_3xx (toolcache) → actions/python-versions releases (tag <version>-<build>; extractVersion strips the build id and skips pre-releases). Does NOT bump PYTHON_3xx_SHA256 — recompute manually on bump.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG PYTHON_3\\d+=(?<currentValue>3\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "actions/python-versions",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^(?<version>\\d+\\.\\d+\\.\\d+)-\\d+$",
+      "versioningTemplate": "python"
+    },
+    {
+      "description": "ARG GO_1xx (toolcache) → Go releases. Does NOT bump GO_1xx_SHA256 — recompute manually from go.dev/dl JSON on bump.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG GO_1\\d+=(?<currentValue>1\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "go",
+      "datasourceTemplate": "golang-version",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG RUST_VERSION → rust-lang/rust releases. No hash recompute needed (RUSTUP_SHA256 is keyed by RUSTUP_VERSION, not the toolchain).",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG RUST_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "rust-lang/rust",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG RUSTUP_VERSION → rust-lang/rustup tags (no GitHub releases upstream). Does NOT bump RUSTUP_SHA256 — recompute from <url>.sha256 on bump.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG RUSTUP_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "rust-lang/rustup",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
+    }
+  ]
+}

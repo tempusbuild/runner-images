@@ -1,0 +1,100 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+# Serialize builds (no cancel: a signing run must not be killed mid-flight). Fixed group string:
+# github.workflow would differ between a main push ("build") and the weekly workflow_call
+# ("weekly-rebuild"), letting the two race on tags.
+concurrency:
+  group: image-build
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-push:
+    name: Build, scan, sign, push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # push image to ghcr
+      id-token: write   # cosign keyless (Fulcio OIDC) + SLSA provenance attestation
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+      - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee  # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          # Ephemeral per-run token, not a long-lived PAT.
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9  # v6.1.0
+        with:
+          images: ghcr.io/tempusbuild/runner-ubuntu-24.04
+          # No :latest (floating tags disallowed). Consumers pin date@sha256.
+          tags: |
+            type=raw,value=v{{date 'YYYYMMDD'}}
+            type=sha
+      # 1) Push by digest ONLY (no public tags): an unscanned artifact gets no consumable tags before
+      #    the gate. SBOM+provenance are attached to the digest.
+      #    Deliberately NO layer cache: the weekly rebuild exists to pull fresh apt patches (a cache
+      #    would serve stale layers), and the signed artifact must not be assembled from a poisonable cache.
+      - id: build
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
+        with:
+          context: ubuntu-24.04
+          outputs: type=image,name=ghcr.io/tempusbuild/runner-ubuntu-24.04,push-by-digest=true,name-canonical=true,push=true
+          labels: ${{ steps.meta.outputs.labels }}
+          sbom: true              # SBOM attestation (SPDX)
+          provenance: mode=max    # SLSA provenance attestation (targets Build L3)
+
+      # 2) Scan the exact published artifact (by digest, still untagged) — the gate before tagging.
+      #    Registry auth comes from the docker/login-action step above (~/.docker/config.json) —
+      #    do not move/remove that step or the pull of the untagged digest breaks.
+      - name: Trivy scan (gate by digest)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        env:
+          # No "new version available" notices / phone-home from the gate; trivy version comes from the action pin.
+          TRIVY_SKIP_VERSION_CHECK: "true"
+        with:
+          image-ref: ghcr.io/tempusbuild/runner-ubuntu-24.04@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: "true"
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"
+
+      # 3) Only on a green scan — apply public tags to the scanned digest (no rebuild). This way
+      #    consumable tags (vYYYYMMDD/sha) NEVER point at an image that did not pass the scan.
+      - name: Tag scanned digest
+        env:
+          IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            docker buildx imagetools create --tag "$tag" "${IMAGE}@${DIGEST}"
+          done <<< "$TAGS"
+
+      # 4) Sign + immediate verify (proves the Rekor entry) — by digest.
+      - name: Sign and verify (cosign keyless / OIDC)
+        env:
+          IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+          cosign verify \
+            --certificate-identity-regexp '^https://github\.com/tempusbuild/runner-images/\.github/workflows/build\.yml@refs/heads/main$' \
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+            "${IMAGE}@${DIGEST}"

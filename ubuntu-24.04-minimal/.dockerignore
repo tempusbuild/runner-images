@@ -1,0 +1,2 @@
+# Nothing is COPY'd into this image — keep the build context empty.
+*
