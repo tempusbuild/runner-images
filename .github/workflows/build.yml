@@ -24,6 +24,7 @@ jobs:
       packages: write       # push image to ghcr
       id-token: write       # cosign keyless (Fulcio OIDC) + Sigstore attestations
       attestations: write   # GitHub artifact attestations (SBOM + provenance)
+      artifact-metadata: write   # storage records for registry attestations
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
         with:
@@ -127,13 +128,13 @@ jobs:
           format: spdx-json
           output-file: sbom.spdx.json
           upload-artifact: false
-      - uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e  # v4.1.0
+      - uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26  # v4.1.0
         with:
           subject-name: ghcr.io/tempusbuild/runner-ubuntu-24.04
           subject-digest: ${{ steps.build.outputs.digest }}
           sbom-path: sbom.spdx.json
           push-to-registry: true
-      - uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32  # v4.1.0
+      - uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26  # v4.1.0
         with:
           subject-name: ghcr.io/tempusbuild/runner-ubuntu-24.04
           subject-digest: ${{ steps.build.outputs.digest }}
