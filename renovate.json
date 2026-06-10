@@ -2,12 +2,15 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    ":pinDigests",
+    "docker:pinDigests",
     "helpers:pinGitHubActionDigests"
   ],
   "timezone": "Etc/UTC",
   "pre-commit": {
     "enabled": true
+  },
+  "pip-compile": {
+    "managerFilePatterns": ["/^\\.github/lint-requirements\\.txt$/"]
   },
   "schedule": ["before 6am on monday"],
   "labels": ["dependencies"],
