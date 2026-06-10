@@ -1,0 +1,98 @@
+name: test
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405  # v6.2.0
+        with:
+          python-version: "3.12"
+      # Hook environments are expensive to build (node/golang toolchains) — cache them.
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae  # v5.0.5
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+      # Plain steps instead of the maintenance-mode pre-commit/action (it pulls a deprecated
+      # node20 actions/cache internally).
+      - run: pip install pre-commit==4.6.0
+      - run: pre-commit run --all-files --show-diff-on-failure
+
+  build-test:
+    name: Build and test (full)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
+      # Layer cache is for PR iteration speed only — the release build (build.yml) is
+      # deliberately uncached so weekly rebuilds always pull fresh apt patches.
+      - name: Build image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
+        with:
+          context: ubuntu-24.04
+          load: true
+          tags: tempusbuild/runner-ubuntu-24.04:pr
+          cache-from: type=gha,scope=full
+          cache-to: type=gha,scope=full,mode=max
+      - name: Smoke tests
+        run: |
+          docker run --rm -v "$PWD/tests:/tests:ro" tempusbuild/runner-ubuntu-24.04:pr \
+            bash -c 'for t in /tests/*.sh; do echo "== $t =="; bash "$t"; done'
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        env:
+          TRIVY_SKIP_VERSION_CHECK: "true"
+        with:
+          image-ref: tempusbuild/runner-ubuntu-24.04:pr
+          severity: HIGH,CRITICAL
+          ignore-unfixed: "true"
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"
+
+  build-test-minimal:
+    name: Build and test (minimal)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10  # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5  # v4.1.0
+      - name: Build minimal image
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf  # v7.2.0
+        with:
+          context: ubuntu-24.04-minimal
+          load: true
+          tags: tempusbuild/runner-ubuntu-24.04-minimal:pr
+          cache-from: type=gha,scope=minimal
+          cache-to: type=gha,scope=minimal,mode=max
+      - name: Smoke tests
+        # minimal has no node/docker/python/unzip — the shared /tests/*.sh does not fit it. Run only
+        # runner-agent + the base tool set (what minimal actually contains).
+        run: |
+          docker run --rm -v "$PWD/tests:/tests:ro" tempusbuild/runner-ubuntu-24.04-minimal:pr \
+            bash -c 'for t in /tests/test_runner.sh /tests/test_minimal_base.sh; do echo "== $t =="; bash "$t"; done'
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        env:
+          TRIVY_SKIP_VERSION_CHECK: "true"
+        with:
+          image-ref: tempusbuild/runner-ubuntu-24.04-minimal:pr
+          severity: HIGH,CRITICAL
+          ignore-unfixed: "true"
+          trivyignores: .trivyignore.yaml
+          exit-code: "1"

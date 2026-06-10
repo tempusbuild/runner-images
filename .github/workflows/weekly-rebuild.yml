@@ -1,0 +1,19 @@
+name: weekly-rebuild
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # The reusable build.yml needs these on the calling job (least-privilege).
+  rebuild:
+    name: Weekly rebuild
+    permissions:
+      contents: read
+      packages: write   # push image to ghcr (in build.yml)
+      id-token: write   # cosign keyless + SLSA provenance (in build.yml)
+    uses: ./.github/workflows/build.yml

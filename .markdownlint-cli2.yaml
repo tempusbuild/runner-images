@@ -1,0 +1,6 @@
+config:
+  # Docs wrap at ~100; tables and code blocks are exempt.
+  line-length:
+    line_length: 120
+    tables: false
+    code_blocks: false
