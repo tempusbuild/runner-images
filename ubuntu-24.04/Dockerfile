@@ -9,7 +9,7 @@ ARG RUNNER_VERSION=2.335.1
 ARG RUNNER_SHA256=4ef2f25285f0ae4477f1fe1e346db76d2f3ebf03824e2ddd1973a2819bf6c8cf
 ARG NODE_MAJOR=22
 # Fresh npm: npm's bundled deps from NodeSource pull in CVEs.
-ARG NPM_VERSION=11.16.0
+ARG NPM_VERSION=11.17.0
 ARG TARGETARCH=amd64
 
 # Python toolcache (matches setup-python: same actions/python-versions builds, offline cache hit).
