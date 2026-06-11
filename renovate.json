@@ -16,6 +16,7 @@
     "enabled": false
   },
   "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "3 days",
   "labels": ["dependencies"],
   "prHourlyLimit": 2,
   "prConcurrentLimit": 5,
