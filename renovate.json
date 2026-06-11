@@ -12,6 +12,9 @@
   "pip-compile": {
     "managerFilePatterns": ["/^\\.github/lint-requirements\\.txt$/"]
   },
+  "pip_requirements": {
+    "enabled": false
+  },
   "schedule": ["before 6am on monday"],
   "labels": ["dependencies"],
   "prHourlyLimit": 2,
