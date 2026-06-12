@@ -31,7 +31,7 @@ build:
 # smoke tests inside the full image
 [group('full')]
 test: build
-    docker run --rm -v "$PWD/tests:/tests:ro" {{ image }} bash -c 'for t in /tests/*.sh; do echo "== $t =="; bash "$t"; done'
+    docker run --rm -v "$PWD/tests:/tests:ro" {{ image }} bash -c 'for t in /tests/*.sh; do echo "== $t =="; bash "$t" || exit 1; done'
 
 # vulnerability scan of the full image (exceptions in .trivyignore.yaml)
 [group('full')]
@@ -46,7 +46,7 @@ build-minimal:
 # smoke tests inside the minimal image (runner + base subset, same as CI)
 [group('minimal')]
 test-minimal: build-minimal
-    docker run --rm -v "$PWD/tests:/tests:ro" {{ image_minimal }} bash -c 'for t in /tests/test_runner.sh /tests/test_minimal_base.sh; do echo "== $t =="; bash "$t"; done'
+    docker run --rm -v "$PWD/tests:/tests:ro" {{ image_minimal }} bash -c 'for t in /tests/test_runner.sh /tests/test_minimal_base.sh; do echo "== $t =="; bash "$t" || exit 1; done'
 
 # vulnerability scan of the minimal image
 [group('minimal')]

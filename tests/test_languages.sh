@@ -35,7 +35,7 @@ python3 -m venv /tmp/venv
 rm -rf /tmp/venv
 
 # Python toolcache (matches setup-python): each baked version runs and has a .complete marker.
-for v in 3.10.20 3.11.15 3.12.13 3.13.13 3.14.6; do
+for v in 3.10.20 3.11.15 3.12.13 3.13.14 3.14.6; do
   py="${RUNNER_TOOL_CACHE}/Python/${v}/x64/bin/python3"
   [ -x "$py" ] || { echo "MISSING python toolcache $v ($py)" >&2; exit 1; }
   [ -f "${RUNNER_TOOL_CACHE}/Python/${v}/x64.complete" ] || { echo "MISSING marker Python/${v}/x64.complete" >&2; exit 1; }
