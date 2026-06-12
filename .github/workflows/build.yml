@@ -90,7 +90,7 @@ jobs:
         run: |
           set -euo pipefail
           docker run --rm -v "$PWD/tests:/tests:ro" "${IMAGE}@${DIGEST}" \
-            bash -c 'for t in /tests/*.sh; do echo "== $t =="; bash "$t"; done'
+            bash -c 'for t in /tests/*.sh; do echo "== $t =="; bash "$t" || exit 1; done'
 
       # 4) Only after green gates — apply public tags to the same digest (no rebuild), so
       #    consumable tags NEVER point at an image that did not pass.

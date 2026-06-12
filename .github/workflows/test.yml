@@ -79,7 +79,7 @@ jobs:
       - name: Smoke tests
         run: |
           docker run --rm -v "$PWD/tests:/tests:ro" tempusbuild/runner-ubuntu-24.04:pr \
-            bash -c 'for t in /tests/*.sh; do echo "== $t =="; bash "$t"; done'
+            bash -c 'for t in /tests/*.sh; do echo "== $t =="; bash "$t" || exit 1; done'
       - name: Trivy scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         env:
@@ -135,7 +135,7 @@ jobs:
         # runner-agent + the base tool set (what minimal actually contains).
         run: |
           docker run --rm -v "$PWD/tests:/tests:ro" tempusbuild/runner-ubuntu-24.04-minimal:pr \
-            bash -c 'for t in /tests/test_runner.sh /tests/test_minimal_base.sh; do echo "== $t =="; bash "$t"; done'
+            bash -c 'for t in /tests/test_runner.sh /tests/test_minimal_base.sh; do echo "== $t =="; bash "$t" || exit 1; done'
       - name: Trivy scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         env:

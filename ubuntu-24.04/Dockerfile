@@ -17,12 +17,12 @@ ARG TARGETARCH=amd64
 ARG PYTHON_310=3.10.20
 ARG PYTHON_311=3.11.15
 ARG PYTHON_312=3.12.13
-ARG PYTHON_313=3.13.13
+ARG PYTHON_313=3.13.14
 ARG PYTHON_314=3.14.6
 ARG PYTHON_310_SHA256=4ebefe0bdcd96dabd2e8e37388a758ecf5cc9a7738ec2bc57d60bdfc1b9966f5
 ARG PYTHON_311_SHA256=f9b44dbcda5044f5b687e3c30bd0a4eacaafb8c9ae828542f474050bf79235c9
 ARG PYTHON_312_SHA256=ca90dadd4f33275e829935a948d77b7b51b91e8463fd84f40ac6deaa99e14726
-ARG PYTHON_313_SHA256=820a9e3cd30354bec9929dafe7ce51ca60006fbfcd445ad6c1344cc394332b28
+ARG PYTHON_313_SHA256=c54b2ef814e8002782c04e8fec521dda72cad93f3d1a835cb65b49f769b38842
 ARG PYTHON_314_SHA256=29dc7f3887a430fe7a0005fee4732b00be1bbed5bf21aa1e43f8d947eb1b9f61
 # 3.10/3.11 bundle an old setuptools with vulnerable vendored copies (CVE-2026-23949/-24049) —
 # upgrade to the fixed version rather than ignoring (3.12+ bundle no setuptools, PEP 632).
@@ -155,7 +155,7 @@ RUN PY_ARCH="${TARGETARCH/amd64/x64}" \
               PIP_ROOT_USER_ACTION=ignore "${py}" -m pip install --quiet --no-warn-script-location \
                 --upgrade "setuptools==${SETUPTOOLS_VERSION}"; \
             fi \
-         && rm -rf "${work}" "/tmp/py-${v}.tar.gz"; \
+         && rm -rf "${work}" "/tmp/py-${v}.tar.gz" || exit 1; \
        done \
     && rm -rf /tmp/* \
     && find /opt/hostedtoolcache/Python -depth -type d -name __pycache__ -exec rm -rf {} + \
@@ -177,7 +177,7 @@ RUN GO_ARCH="${TARGETARCH/amd64/x64}" \
          && mkdir -p "${dest}" \
          && tar xzf "/tmp/go-${v}.tar.gz" -C "${dest}" --strip-components=1 \
          && touch "/opt/hostedtoolcache/go/${v}/${GO_ARCH}.complete" \
-         && rm -f "/tmp/go-${v}.tar.gz"; \
+         && rm -f "/tmp/go-${v}.tar.gz" || exit 1; \
        done \
     && rm -rf /tmp/* \
     && chown -R runner:runner /opt/hostedtoolcache/go
