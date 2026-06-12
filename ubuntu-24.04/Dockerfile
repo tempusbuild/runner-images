@@ -102,8 +102,11 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o 
 
 # Unprivileged runner (+sudo for setup-* steps) and a toolcache writable by the runner user.
 # UID pinned to 1001 (same as the official ARC runner image) — dind volume permissions rely on it.
+# docker group pinned to gid 123 — the gid the ARC dind sidecar creates docker.sock with, so the
+# runner user can reach the daemon socket instead of getting permission denied.
 RUN useradd -m -u 1001 -s /bin/bash runner \
-    && usermod -aG sudo runner \
+    && groupadd -g 123 docker \
+    && usermod -aG sudo,docker runner \
     && echo "runner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/runner \
     && chmod 0440 /etc/sudoers.d/runner \
     && mkdir -p /opt/hostedtoolcache \
