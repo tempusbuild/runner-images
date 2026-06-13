@@ -67,6 +67,12 @@ printf 'package main\nimport "fmt"\nfunc main(){fmt.Println("ok")}\n' > /tmp/goh
 echo "ok: go build hello"
 rm -rf /tmp/gohello /tmp/gocache /tmp/gopath
 
+# Default Go on PATH (parity with ubuntu-latest): the newest baked version is the system `go`, so
+# tools that assume a system Go (e.g. pre-commit golang hooks) do not try to download a toolchain.
+command -v go >/dev/null || { echo "MISSING: go not on default PATH" >&2; exit 1; }
+go version | grep -q 'go1.26.4 ' || { echo "default go != 1.26.4: $(go version)" >&2; exit 1; }
+echo "ok: default go on PATH $(go version)"
+
 rustc --version | grep -q '1.95.0' || { echo "rustc != 1.95.0: $(rustc --version)" >&2; exit 1; }
 cargo --version >/dev/null
 echo "ok: rust $(rustc --version), $(cargo --version)"

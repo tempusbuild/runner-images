@@ -53,8 +53,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     AGENT_TOOLSDIRECTORY=/opt/hostedtoolcache \
     RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
-    # /home/runner/.local/bin: pipx install target (parity with GitHub-hosted runners).
-    PATH=/home/runner/.local/bin:/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    # /home/runner/.local/bin: pipx target; /home/runner/go/bin: `go install` target;
+    # /usr/local/go/bin: default system `go` (parity with GitHub-hosted runners).
+    PATH=/home/runner/.local/bin:/home/runner/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -166,7 +167,9 @@ RUN PY_ARCH="${TARGETARCH/amd64/x64}" \
 
 # Prebake the Go toolcache (matches setup-go): go.dev tarball for the exact version + SHA256, the
 # contents of go/ go into $RUNNER_TOOL_CACHE/go/<v>/x64 + a <v>/x64.complete marker (setup-go layout
-# for the cache hit).
+# for the cache hit). The newest version is also symlinked to /usr/local/go and put on PATH as the
+# default `go` (parity with ubuntu-latest, which exposes its newest cached Go) — so tools that assume
+# a system Go (e.g. pre-commit golang hooks) work without downloading a toolchain.
 RUN GO_ARCH="${TARGETARCH/amd64/x64}" \
     && declare -A GO_SHA=( \
          ["${GO_125}"]="${GO_125_SHA256}" \
@@ -183,6 +186,7 @@ RUN GO_ARCH="${TARGETARCH/amd64/x64}" \
          && rm -f "/tmp/go-${v}.tar.gz" || exit 1; \
        done \
     && rm -rf /tmp/* \
+    && ln -sfn "/opt/hostedtoolcache/go/${GO_126}/x64" /usr/local/go \
     && chown -R runner:runner /opt/hostedtoolcache/go
 
 # Rust via pinned rustup-init (not `curl | sh`): tarball + SHA256, then an offline install of the

@@ -49,8 +49,9 @@ Included:
   `libxml2-dev`, `libxslt1-dev`, `zlib1g-dev`, `libjpeg-dev`) — building native wheels works;
 - `pipx` for isolated CLI tools;
 - toolcache Python 3.10 / 3.11 / 3.12 / 3.13 / 3.14 → `setup-python` resolves offline (cache hit);
-- toolcache Go 1.25 / 1.26 → `actions/setup-go` resolves offline (cache hit) — versions and layout
-  in the table above;
+- toolcache Go 1.25 / 1.26 → `actions/setup-go` resolves offline (cache hit); the newest (1.26) is
+  also the default `go` on `PATH` (parity with ubuntu-latest), so tools expecting a system Go work
+  without downloading a toolchain — versions and layout in the table above;
 - Rust via `rustup` (versions in the table above); `cargo`/`rustup` on `PATH`, usable by `runner`;
   native crates build (`build-essential`, `pkg-config`, `libssl-dev` present).
 
