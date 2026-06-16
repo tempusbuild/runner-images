@@ -6,6 +6,7 @@
     "helpers:pinGitHubActionDigests"
   ],
   "timezone": "Etc/UTC",
+  "dependencyDashboardApproval": true,
   "pre-commit": {
     "enabled": true
   },
@@ -23,6 +24,11 @@
   "dependencyDashboard": true,
   "configMigration": true,
   "packageRules": [
+    {
+      "description": "CMAKE_VERSION stays on the 3.31 line; cmake 4.x is a separate manual pin (CMAKE4_VERSION).",
+      "matchPackageNames": ["Kitware/CMake"],
+      "allowedVersions": "<4"
+    },
     {
       "description": "GHA actions: pin by SHA, tag comment auto-updated (pinGitHubActionDigests), grouped.",
       "matchManagers": ["github-actions"],
@@ -448,12 +454,12 @@
       "versioningTemplate": "semver"
     },
     {
-      "description": "ARG GHCUP_VERSION → haskell/ghcup-hs. Does NOT bump GHCUP_SHA256.",
+      "description": "ARG GHCUP_VERSION → haskell/ghcup-hs releases. Does NOT bump GHCUP_SHA256.",
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)Dockerfile$/"],
       "matchStrings": ["ARG GHCUP_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+\\.\\d+)"],
       "depNameTemplate": "haskell/ghcup-hs",
-      "datasourceTemplate": "github-tags",
+      "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.+)$",
       "versioningTemplate": "loose"
     },
