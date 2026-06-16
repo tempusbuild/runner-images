@@ -47,18 +47,18 @@ registry next to the digest. Verify with the `gh` CLI:
 gh attestation verify "oci://${IMAGE}@${DIGEST}" --owner tempusbuild
 ```
 
-### 3. SBOM (SPDX)
+### 3. SBOM (CycloneDX)
 
-A package-level SPDX SBOM is a Sigstore-signed attestation (`actions/attest`) pushed to the registry
-next to the digest. Verify with the `gh` CLI:
+A package-level CycloneDX SBOM is a Sigstore-signed attestation (`actions/attest`) pushed to the
+registry next to the digest. Verify with the `gh` CLI:
 
 ```sh
 gh attestation verify "oci://${IMAGE}@${DIGEST}" --owner tempusbuild
 ```
 
-(The SBOM is package-level — file-level cataloguing would push it past GitHub attest's predicate size
-cap.) The image signature in step 1 is the cryptographic anchor; provenance and SBOM bind to the same
-digest.
+(Package-level CycloneDX — file-level cataloguing or SPDX would push the predicate past GitHub
+attest's size cap.) The image signature in step 1 is the cryptographic anchor; provenance and SBOM
+bind to the same digest.
 
 ## Vulnerability (CVE) policy
 
