@@ -73,6 +73,13 @@ gh attestation verify "oci://${IMAGE}@${DIGEST}" --owner tempusbuild
 - **Build gate**: every push to `main` is scanned by `trivy` against the published digest with
   `--severity HIGH,CRITICAL`. An unhandled fixable HIGH/CRITICAL **fails** the build, which means the
   image is not signed and is not admitted to run by the consumer's admission policy.
+- **Scope**: the blocking gate is **OS-scoped** (`--scanners vuln --pkg-types os`) — the apt/base
+  layer this project patches directly (apt security updates + base-digest bump on the weekly rebuild).
+  The image is a toolbox of pinned third-party tools (Node/Go/.NET/Ruby/Python CLIs, browsers, CodeQL,
+  Selenium, …); CVEs inside those tools' bundled dependencies are addressed by **keeping the tool
+  versions current** (Renovate proposes bumps as upstream ships fixes), not by an unmaintainable
+  per-dependency ignore list — the same posture GitHub-hosted runner images take. Image secrets are
+  covered by `gitleaks` (source) and Dockle (image), so trivy's secret scanner is not run.
 - **`--ignore-unfixed`**: enabled. CVEs with no available fix do not block the build (nothing to fix),
   but are picked up automatically once upstream ships a patch — that is what the weekly rebuild
   (`weekly-rebuild.yml`) is for.
@@ -86,9 +93,10 @@ gh attestation verify "oci://${IMAGE}@${DIGEST}" --owner tempusbuild
 
 ## Currency of pins
 
-The base image is pinned by `sha256:` digest, the toolchain (runner, Node, npm, Python and Go
-toolcache, Rust/rustup) by exact versions with SHA256-verified downloads, and all GitHub Actions
-by commit SHA. Pin currency is maintained by:
+The base image is pinned by `sha256:` digest; the bundled toolset (runner, language runtimes and
+toolcaches, CLIs, build tools, browsers and drivers) by exact versions with SHA256/512-verified
+downloads or key-verified vendor apt repositories; and all GitHub Actions by commit SHA. Pin
+currency is maintained by:
 
 - **`weekly-rebuild.yml`** — a weekly rebuild with the same digest/pins (pulls apt package patches
   into the layers, refreshes attestations);

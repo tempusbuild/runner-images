@@ -1,22 +1,10 @@
 # Documented trivy exceptions — policy and required fields are described in SECURITY.md.
 vulnerabilities:
-  # Docker CLI plugins: the fixed dependency versions exist, but NO upstream plugin build ships them
-  # yet — the newest buildx (0.34.1) and compose (5.1.4) in both the download.docker.com apt repo and
-  # the GitHub releases are built against moby 28.5.2 / go 1.25.5. Re-check go.mod of new tags weekly.
-  - id: CVE-2026-34040
-    statement: "moby 28.5.2 in docker-buildx/compose-plugin; fix 29.3.1 not in any upstream plugin build (buildx 0.34.1 / compose 5.1.4); re-check weekly."
-    expired_at: 2026-07-08
-  - id: CVE-2026-42504
-    statement: "Go stdlib in docker-buildx/compose-plugin; fixed 1.26.4 toolchain not in any upstream plugin build (still go 1.25.5); re-check weekly."
-    expired_at: 2026-07-08
-  - id: CVE-2026-46680
-    statement: "containerd 2.2.3 in docker-buildx/compose-plugin; fix 2.2.4 not in any upstream build (comes with the moby bump); re-check weekly."
-    expired_at: 2026-07-08
-
-# Scoped to the exact fixture path, not by disabling the scanner: a real secret anywhere else in
-# the image stays covered. The glob is needed because the path moves with version/arch.
-secrets:
-  - id: private-key
-    paths:
-      - "**/src/crypto/x509/platform_root_key.pem"
-    statement: "Confirmed FP: Go stdlib test key (crypto/x509 test fixture), ships with every Go toolchain — not a real secret."
+  # Firefox is installed from the Mozilla apt repo (current stable, bundling patched expat). Trivy
+  # maps these 2022 expat CVEs to Ubuntu's snap-transitional firefox, which this image does not use.
+  - id: CVE-2022-25235
+    statement: "FP: Firefox from the Mozilla apt repo bundles patched expat; Trivy's fix maps to the unused Ubuntu snap firefox."
+    expired_at: 2026-09-15
+  - id: CVE-2022-25236
+    statement: "FP: Firefox from the Mozilla apt repo bundles patched expat; Trivy's fix maps to the unused Ubuntu snap firefox."
+    expired_at: 2026-09-15

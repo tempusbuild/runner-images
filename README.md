@@ -18,13 +18,14 @@ Public for transparency: you can see exactly what your code runs inside.
 
 ## Images
 
-| Image                  | Label                       | Contents                                                                                                              |
-| ---------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `ubuntu-24.04`         | `tempus-ubuntu-24.04-4core` | runner + Node 22 + Python (3.12 + toolcache 3.10–3.14) + Go (1.25/1.26) + Rust + Docker CLI + `gh` + base             |
-| `ubuntu-24.04-minimal` | —                           | runner + base (no Node/Docker). Built and tested in CI, **not published yet** — only `ubuntu-24.04` is pushed to ghcr |
+| Image                  | Label                       | Contents                                                                                                                                                                                                                                                                           |
+| ---------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ubuntu-24.04`         | `tempus-ubuntu-24.04-4core` | runner + full `ubuntu-latest` toolset parity: languages + prebaked toolcaches (Node/Python/Go/Ruby/PyPy), Java/.NET/PHP/Swift/Julia/Kotlin/Haskell, DevOps/cloud/k8s CLIs, databases, browsers + drivers, Android SDK/NDK — see [`ubuntu-24.04/README.md`](ubuntu-24.04/README.md) |
+| `ubuntu-24.04-minimal` | —                           | runner + base (no Node/Docker). Built and tested in CI, **not published yet** — only `ubuntu-24.04` is pushed to ghcr                                                                                                                                                              |
 
-`ubuntu-24.04` matches GitHub's `ubuntu-latest` (Ubuntu 24.04) and the standard public runner
-(4 vCPU / 16 GB). See [`ubuntu-24.04/README.md`](ubuntu-24.04/README.md) for details.
+`ubuntu-24.04` provides full toolset parity with GitHub's `ubuntu-latest` (Ubuntu 24.04) on the
+standard public-runner shape (4 vCPU / 16 GB). See [`ubuntu-24.04/README.md`](ubuntu-24.04/README.md)
+for the complete inventory and the inclusion policy.
 
 ## Local
 

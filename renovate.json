@@ -59,10 +59,25 @@
       "allowedVersions": "/^\\d*[02468]$/"
     },
     {
-      "description": "Baked Python/Go toolcache minors stay patch-current only; adding/dropping a minor is a deliberate Dockerfile change (new ARG + SHA256), not a Renovate bump.",
-      "matchDepNames": ["actions/python-versions", "go"],
+      "description": "Baked Python/Go/Node/Ruby toolcache minors stay patch-current only; adding/dropping a minor is a deliberate Dockerfile change (new ARG + SHA256), not a Renovate bump.",
+      "matchDepNames": ["actions/python-versions", "go", "actions/node-versions", "ruby/ruby-builder"],
       "matchUpdateTypes": ["minor", "major"],
       "enabled": false
+    },
+    {
+      "description": "Helm stays on the 3.x line (parity with ubuntu-latest; v4 is a breaking major).",
+      "matchDepNames": ["helm/helm"],
+      "allowedVersions": "<4"
+    },
+    {
+      "description": "AWS CLI stays on v2.",
+      "matchDepNames": ["aws/aws-cli"],
+      "allowedVersions": ">=2 <3"
+    },
+    {
+      "description": "PHPUnit stays on the 8.x line (parity with ubuntu-latest).",
+      "matchDepNames": ["sebastianbergmann/phpunit"],
+      "allowedVersions": "<9"
     }
   ],
   "customManagers": [
@@ -155,6 +170,394 @@
       ],
       "datasourceTemplate": "docker",
       "versioningTemplate": "docker"
+    },
+    {
+      "description": "ARG YQ_VERSION → mikefarah/yq. Does NOT bump YQ_SHA256 — recompute on bump.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG YQ_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "mikefarah/yq",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG CMAKE_VERSION → Kitware/CMake. Does NOT bump CMAKE_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG CMAKE_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "Kitware/CMake",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG GITLFS_VERSION → git-lfs/git-lfs. Does NOT bump GITLFS_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG GITLFS_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "git-lfs/git-lfs",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG ZSTD_VERSION → facebook/zstd. Does NOT bump ZSTD_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG ZSTD_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "facebook/zstd",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG KUBECTL_VERSION → kubernetes/kubernetes.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG KUBECTL_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "kubernetes/kubernetes",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG HELM_VERSION → helm/helm (pinned to 3.x via packageRules). Does NOT bump HELM_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG HELM_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "helm/helm",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG AWSCLI_VERSION → aws/aws-cli tags (pinned to v2 via packageRules). Does NOT bump AWSCLI_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG AWSCLI_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "aws/aws-cli",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG SAM_VERSION → aws/aws-sam-cli. Does NOT bump SAM_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG SAM_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "aws/aws-sam-cli",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG GECKODRIVER_VERSION → mozilla/geckodriver. Does NOT bump GECKODRIVER_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG GECKODRIVER_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "mozilla/geckodriver",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG SELENIUM_VERSION → SeleniumHQ/selenium (tag selenium-x). Does NOT bump SELENIUM_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG SELENIUM_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "SeleniumHQ/selenium",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^selenium-(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG BAZELISK_VERSION → bazelbuild/bazelisk. Does NOT bump BAZELISK_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG BAZELISK_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "bazelbuild/bazelisk",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG KIND_VERSION → kubernetes-sigs/kind. Does NOT bump KIND_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG KIND_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "kubernetes-sigs/kind",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG MINIKUBE_VERSION → kubernetes/minikube. Does NOT bump MINIKUBE_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG MINIKUBE_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "kubernetes/minikube",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG KUSTOMIZE_VERSION → kubernetes-sigs/kustomize (tag kustomize/vx). Does NOT bump KUSTOMIZE_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG KUSTOMIZE_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "kubernetes-sigs/kustomize",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^kustomize/v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG PACKER_VERSION → hashicorp/packer. Does NOT bump PACKER_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG PACKER_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "hashicorp/packer",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG BICEP_VERSION → Azure/bicep. Does NOT bump BICEP_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG BICEP_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "Azure/bicep",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG AZCOPY_VERSION → Azure/azure-storage-azcopy. Does NOT bump AZCOPY_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG AZCOPY_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "Azure/azure-storage-azcopy",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG CODEQL_VERSION → github/codeql-action (tag codeql-bundle-vx). Does NOT bump CODEQL_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG CODEQL_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "github/codeql-action",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^codeql-bundle-v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG PULUMI_VERSION → pulumi/pulumi. Does NOT bump PULUMI_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG PULUMI_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "pulumi/pulumi",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG OPENTOFU_VERSION → opentofu/opentofu. Does NOT bump OPENTOFU_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG OPENTOFU_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "opentofu/opentofu",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG NVM_VERSION → nvm-sh/nvm.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG NVM_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "nvm-sh/nvm",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG COMPOSER_VERSION → composer/composer. Does NOT bump COMPOSER_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG COMPOSER_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "composer/composer",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG PHPUNIT_VERSION → sebastianbergmann/phpunit (pinned to 8.x via packageRules). Does NOT bump PHPUNIT_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG PHPUNIT_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "sebastianbergmann/phpunit",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG MAVEN_VERSION → apache/maven (tag maven-x). Does NOT bump MAVEN_SHA512.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG MAVEN_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "apache/maven",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^maven-(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG GRADLE_VERSION → Gradle. Does NOT bump GRADLE_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG GRADLE_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "gradle",
+      "datasourceTemplate": "gradle-version",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG JULIA_VERSION → JuliaLang/julia. Does NOT bump JULIA_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG JULIA_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "JuliaLang/julia",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG KOTLIN_VERSION → JetBrains/kotlin. Does NOT bump KOTLIN_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG KOTLIN_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "JetBrains/kotlin",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG POWERSHELL_VERSION → PowerShell/PowerShell. Does NOT bump POWERSHELL_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG POWERSHELL_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "PowerShell/PowerShell",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG GHCUP_VERSION → haskell/ghcup-hs. Does NOT bump GHCUP_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG GHCUP_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "haskell/ghcup-hs",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "loose"
+    },
+    {
+      "description": "ARG SWIFT_VERSION → swiftlang/swift (tag swift-x-RELEASE). Does NOT bump SWIFT_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG SWIFT_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "swiftlang/swift",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^swift-(?<version>.+)-RELEASE$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG HOMEBREW_VERSION → Homebrew/brew.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG HOMEBREW_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "Homebrew/brew",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG VCPKG_VERSION → microsoft/vcpkg date-tagged releases.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG VCPKG_VERSION=(?<currentValue>\\d{4}\\.\\d{2}\\.\\d{2})"],
+      "depNameTemplate": "microsoft/vcpkg",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "loose"
+    },
+    {
+      "description": "ARG N_VERSION → npm 'n'.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG N_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "n",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "description": "ARG NEWMAN_VERSION → npm 'newman'.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG NEWMAN_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "newman",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "description": "ARG PARCEL_VERSION → npm 'parcel'.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG PARCEL_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "parcel",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "description": "ARG LERNA_VERSION → npm 'lerna'.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG LERNA_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "lerna",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "description": "ARG PIPX_VERSION → PyPI pipx.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG PIPX_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "pipx",
+      "datasourceTemplate": "pypi",
+      "versioningTemplate": "pep440"
+    },
+    {
+      "description": "ARG FASTLANE_VERSION → RubyGems fastlane.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG FASTLANE_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "fastlane",
+      "datasourceTemplate": "rubygems",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG NODE_TC_xx (toolcache) → actions/node-versions (tag <ver>-<build>); patch-only per packageRule. Does NOT bump NODE_TC_xx_SHA256 — recompute on bump.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG NODE_TC_\\d+=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "actions/node-versions",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^(?<version>\\d+\\.\\d+\\.\\d+)-\\d+$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG RUBY_xx (toolcache) → ruby/ruby-builder (tag ruby-<ver>); patch-only per packageRule. Does NOT bump RUBY_xx_SHA256 — recompute on bump.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG RUBY_\\d+=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "ruby/ruby-builder",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^ruby-(?<version>\\d+\\.\\d+\\.\\d+)$",
+      "versioningTemplate": "semver"
     }
   ]
 }

@@ -29,11 +29,11 @@ The same set runs in CI — PRs must be green on the `test` workflow.
 
 ## Conventions
 
-- **Pin everything.** Base image by `sha256:` digest, toolchain by exact versions,
-  GitHub Actions by commit SHA. Never `:latest` or floating tags. Downloaded tarballs
-  are verified by SHA256.
+- **Pin everything.** Base image by `sha256:` digest, every tool/toolchain by exact version,
+  GitHub Actions by commit SHA. Never `:latest` or floating tags. Downloaded artifacts are
+  verified by SHA256/512, or installed from key-verified vendor apt repositories.
 - **Security baseline.** Run as the unprivileged `runner` user; no secrets in layers,
-  ENV, or ARG; clean the apt cache in the same `RUN`; keep the surface minimal.
+  ENV, or ARG; clean the apt cache in the same `RUN`; avoid unnecessary surface (no stray setuid).
 - **CVEs.** The build fails on fixable HIGH/CRITICAL. Prefer fixing over suppressing;
   documented exceptions go in `.trivyignore.yaml` with a `statement` and `expired_at`.
 - **Comments** are English, written only where they add non-obvious context — no
@@ -42,10 +42,10 @@ The same set runs in CI — PRs must be green on the `test` workflow.
 
 ## Versions
 
-Before bumping a base or toolchain version, check the upstream release/manifest. When
-bumping `RUNNER_VERSION`, recompute and update `RUNNER_SHA256` (Renovate does not bump
-the hash). Pinned Go/Python toolcache versions come from `go.dev/dl` and the
-`actions/python-versions` manifest, respectively.
+Before bumping a version, check the upstream release/manifest. Renovate proposes version bumps
+(see `renovate.json`) but does **not** recompute the paired `*_SHA256`/`*_SHA512` — recompute and
+update the hash in the same PR. Toolcache versions come from their upstream manifests
+(`go.dev/dl`, `actions/python-versions`, `actions/node-versions`, `ruby/ruby-builder`, …).
 
 ## Reporting security issues
 
