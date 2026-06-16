@@ -18,7 +18,8 @@ permissions:
 jobs:
   build-push:
     name: Build, scan, sign, push
-    runs-on: ubuntu-latest
+    # Larger runner: the SBOM step OOMs the standard 16 GB runner on the full image.
+    runs-on: ubuntu-2404-8core
     permissions:
       contents: read
       packages: write       # push image to ghcr
@@ -136,6 +137,9 @@ jobs:
       #    documented in SECURITY.md). Storage records are off — broken for registry images
       #    (actions/attest#401).
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
+        env:
+          # Cap syft's heap so it GCs instead of OOM-killing.
+          GOMEMLIMIT: 26GiB
         with:
           image: ghcr.io/tempusbuild/runner-ubuntu-24.04@${{ steps.build.outputs.digest }}
           format: spdx-json
