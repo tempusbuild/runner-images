@@ -121,14 +121,16 @@ jobs:
           done <<< "$TAGS"
 
       # 5) Sign by digest + immediate verify (proves the Rekor entry).
+      # Bounded retry on the cosign↔Rekor calls: sigstore's public-good log flakes and cosign has no retry flag.
       - name: Sign and verify (cosign keyless / OIDC)
         env:
           IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
-          cosign sign --yes "${IMAGE}@${DIGEST}"
-          cosign verify \
+          retry() { local n=1; until "$@"; do [ "$n" -ge 4 ] && return 1; echo "retry $n in $((n*20))s" >&2; sleep $((n*20)); n=$((n+1)); done; }
+          retry cosign sign --yes --timeout 5m "${IMAGE}@${DIGEST}"
+          retry cosign verify \
             --certificate-identity-regexp '^https://github\.com/tempusbuild/runner-images/\.github/workflows/build\.yml@refs/heads/main$' \
             --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
             "${IMAGE}@${DIGEST}"
@@ -149,8 +151,9 @@ jobs:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
-          cosign attest --yes --type spdxjson --predicate sbom.spdx.json "${IMAGE}@${DIGEST}"
-          cosign verify-attestation --type spdxjson \
+          retry() { local n=1; until "$@"; do [ "$n" -ge 4 ] && return 1; echo "retry $n in $((n*20))s" >&2; sleep $((n*20)); n=$((n+1)); done; }
+          retry cosign attest --yes --type spdxjson --timeout 5m --predicate sbom.spdx.json "${IMAGE}@${DIGEST}"
+          retry cosign verify-attestation --type spdxjson \
             --certificate-identity-regexp '^https://github\.com/tempusbuild/runner-images/\.github/workflows/build\.yml@refs/heads/main$' \
             --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
             "${IMAGE}@${DIGEST}" > /dev/null
