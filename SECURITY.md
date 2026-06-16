@@ -38,35 +38,29 @@ cosign verify \
 of this repository; `--certificate-oidc-issuer` binds it to GitHub OIDC. Any other identity/issuer is
 not our build.
 
-### 2. SLSA provenance attestation
+### 2. SLSA build provenance
 
-Provenance is attached by BuildKit (`provenance: mode=max`) as an **in-toto attestation — an OCI
-referrer next to the digest** (targets SLSA Build L3), not as a separate cosign signature. Inspect it
-with `docker buildx imagetools` (requires docker buildx):
-
-```sh
-docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --format '{{ json .Provenance }}' | jq .
-```
-
-The cryptographic trust anchor is the cosign signature from step 1: it covers the image by
-`@${DIGEST}`, and provenance and SBOM are attached to the same digest.
-
-### 3. SBOM (SPDX)
-
-The SBOM (SPDX) is also attached by BuildKit (`sbom: true`) as an attestation to the digest. Inspect:
-
-```sh
-docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --format '{{ json .SBOM }}' | jq .
-```
-
-### 4. GitHub artifact attestations (signed SBOM + provenance)
-
-The build additionally records **Sigstore-signed attestations** (SPDX SBOM and build provenance) in
-the GitHub attestation API and pushes them to the registry. Verify with the `gh` CLI:
+Build provenance is a Sigstore-signed attestation (`actions/attest-build-provenance`) pushed to the
+registry next to the digest. Verify with the `gh` CLI:
 
 ```sh
 gh attestation verify "oci://${IMAGE}@${DIGEST}" --owner tempusbuild
 ```
+
+### 3. SBOM (SPDX)
+
+The SPDX SBOM is attached as a cosign attestation to the digest (keyless, same OIDC identity as the
+signature — the full-image SBOM exceeds GitHub attest's predicate size cap). Verify and read it:
+
+```sh
+cosign verify-attestation --type spdxjson \
+  --certificate-identity-regexp '^https://github\.com/tempusbuild/runner-images/\.github/workflows/build\.yml@refs/heads/main$' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  "${IMAGE}@${DIGEST}"
+```
+
+Every attestation's certificate identity binds to `build.yml` on `refs/heads/main`, the same trust
+anchor as the signature in step 1.
 
 ## Vulnerability (CVE) policy
 
