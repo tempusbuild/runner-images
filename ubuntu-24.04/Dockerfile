@@ -79,8 +79,11 @@ ARG YQ_VERSION=4.53.3
 ARG YQ_SHA256=fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4
 
 # cmake / git-lfs pinned binaries + SHA256 — version parity with ubuntu-latest (apt ships older).
-ARG CMAKE_VERSION=3.31.6
-ARG CMAKE_SHA256=5a1133ff103c71eb5120e2cc3de922733e7d8a26a98ae716397e8676adb367bf
+# Two cmake majors like ubuntu-latest: 3.31 is the default `cmake`, 4.x is exposed as `cmake4`.
+ARG CMAKE_VERSION=3.31.12
+ARG CMAKE_SHA256=0dc2e9a6860f06bf10bd8fadc03e35d9eeb4df46e33763a7e480e987758f385c
+ARG CMAKE4_VERSION=4.3.3
+ARG CMAKE4_SHA256=927b2368a946c37269c3a66225ab00544e756459cdd0b5d0da438694fb9ff802
 ARG GITLFS_VERSION=3.7.1
 ARG GITLFS_SHA256=1c0b6ee5200ca708c5cebebb18fdeb0e1c98f1af5c1a9cba205a4c0ab5a5ec08
 # pipx pinned via pip (Ubuntu's apt pipx lags behind ubuntu-latest).
@@ -97,15 +100,15 @@ ARG HELM_VERSION=3.21.1
 ARG HELM_SHA256=a349c62d6ab2d5d11f044fc0d3afa6deed7d27cc7d5c351f536b169d9fc2cc1a
 
 # AWS CLI v2 pinned installer + SHA256. Azure CLI and Google Cloud CLI come from vendor apt repos.
-ARG AWSCLI_VERSION=2.35.4
-ARG AWSCLI_SHA256=eb037f2df27b653b24b7942fdd7c62bb350354a906c16f70e82d92a2ce49084b
+ARG AWSCLI_VERSION=2.35.6
+ARG AWSCLI_SHA256=d0f7ec7d325c5e24ea63dce6aebea72e9326eb18cf83727a71c0a81359e5da04
 
 # Browser drivers. geckodriver + Selenium server are pinned (SHA256); chromedriver/msedgedriver
 # float to match the apt browser version (fetched by version at build, like the browsers themselves).
 ARG GECKODRIVER_VERSION=0.37.0
 ARG GECKODRIVER_SHA256=90d4e33bd9816684400c160d1309aaffec23a3f65103511d5a62d8501062e548
-ARG SELENIUM_VERSION=4.44.0
-ARG SELENIUM_SHA256=a12015d1a16624bd73491536b3ebbcce6e4de1d520f5166178a232d456a46676
+ARG SELENIUM_VERSION=4.45.0
+ARG SELENIUM_SHA256=713629fd6cc06f94e63c0353a7a840709fe5aeb7f724ee410a812257dc8e3e4a
 
 # DevOps tools — pinned binaries + SHA256 (Newman/Parcel via npm; Ansible/yamllint via pipx;
 # Fastlane via gem; Podman/Buildah/Skopeo from apt).
@@ -282,7 +285,12 @@ RUN curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERS
     && mkdir -p /opt/cmake \
     && tar -C /opt/cmake --strip-components=1 -xzf /tmp/cmake.tar.gz \
     && ln -sf /opt/cmake/bin/* /usr/local/bin/ \
-    && rm -f /tmp/cmake.tar.gz
+    && curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${CMAKE4_VERSION}/cmake-${CMAKE4_VERSION}-linux-x86_64.tar.gz" -o /tmp/cmake4.tar.gz \
+    && echo "${CMAKE4_SHA256}  /tmp/cmake4.tar.gz" | sha256sum -c - \
+    && mkdir -p /opt/cmake-4.x \
+    && tar -C /opt/cmake-4.x --strip-components=1 -xzf /tmp/cmake4.tar.gz \
+    && ln -sf /opt/cmake-4.x/bin/cmake /usr/local/bin/cmake4 \
+    && rm -f /tmp/cmake.tar.gz /tmp/cmake4.tar.gz
 
 RUN curl -fsSL "https://github.com/git-lfs/git-lfs/releases/download/v${GITLFS_VERSION}/git-lfs-linux-amd64-v${GITLFS_VERSION}.tar.gz" -o /tmp/git-lfs.tar.gz \
     && echo "${GITLFS_SHA256}  /tmp/git-lfs.tar.gz" | sha256sum -c - \
