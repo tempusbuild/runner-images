@@ -104,7 +104,7 @@ ARG AWSCLI_SHA256=eb037f2df27b653b24b7942fdd7c62bb350354a906c16f70e82d92a2ce4908
 # float to match the apt browser version (fetched by version at build, like the browsers themselves).
 ARG GECKODRIVER_VERSION=0.37.0
 ARG GECKODRIVER_SHA256=90d4e33bd9816684400c160d1309aaffec23a3f65103511d5a62d8501062e548
-ARG SELENIUM_VERSION=4.44.0
+ARG SELENIUM_VERSION=4.45.0
 ARG SELENIUM_SHA256=a12015d1a16624bd73491536b3ebbcce6e4de1d520f5166178a232d456a46676
 
 # DevOps tools — pinned binaries + SHA256 (Newman/Parcel via npm; Ansible/yamllint via pipx;
