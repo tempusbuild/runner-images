@@ -49,18 +49,16 @@ gh attestation verify "oci://${IMAGE}@${DIGEST}" --owner tempusbuild
 
 ### 3. SBOM (SPDX)
 
-The SPDX SBOM is attached as a cosign attestation to the digest (keyless, same OIDC identity as the
-signature — the full-image SBOM exceeds GitHub attest's predicate size cap). Verify and read it:
+A package-level SPDX SBOM is a Sigstore-signed attestation (`actions/attest`) pushed to the registry
+next to the digest. Verify with the `gh` CLI:
 
 ```sh
-cosign verify-attestation --type spdxjson \
-  --certificate-identity-regexp '^https://github\.com/tempusbuild/runner-images/\.github/workflows/build\.yml@refs/heads/main$' \
-  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-  "${IMAGE}@${DIGEST}"
+gh attestation verify "oci://${IMAGE}@${DIGEST}" --owner tempusbuild
 ```
 
-Every attestation's certificate identity binds to `build.yml` on `refs/heads/main`, the same trust
-anchor as the signature in step 1.
+(The SBOM is package-level — file-level cataloguing would push it past GitHub attest's predicate size
+cap.) The image signature in step 1 is the cryptographic anchor; provenance and SBOM bind to the same
+digest.
 
 ## Vulnerability (CVE) policy
 

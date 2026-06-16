@@ -135,9 +135,10 @@ jobs:
             --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
             "${IMAGE}@${DIGEST}"
 
-      # 6) SBOM via cosign attest, not GitHub attest: the full-image SPDX exceeds attest's 16 MiB cap.
+      # 6) Package-level SBOM (SYFT_FILE_METADATA_SELECTION=none): the full file-level SPDX exceeds GitHub attest's 16 MiB cap.
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
         env:
+          SYFT_FILE_METADATA_SELECTION: none
           # Cap syft's heap so it GCs instead of OOM-killing.
           GOMEMLIMIT: 26GiB
         with:
@@ -145,18 +146,13 @@ jobs:
           format: spdx-json
           output-file: sbom.spdx.json
           upload-artifact: false
-      - name: Attest SBOM (cosign keyless / OIDC)
-        env:
-          IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
-          DIGEST: ${{ steps.build.outputs.digest }}
-        run: |
-          set -euo pipefail
-          retry() { local n=1; until "$@"; do [ "$n" -ge 4 ] && return 1; echo "retry $n in $((n*20))s" >&2; sleep $((n*20)); n=$((n+1)); done; }
-          retry cosign attest --yes --type spdxjson --timeout 5m --predicate sbom.spdx.json "${IMAGE}@${DIGEST}"
-          retry cosign verify-attestation --type spdxjson \
-            --certificate-identity-regexp '^https://github\.com/tempusbuild/runner-images/\.github/workflows/build\.yml@refs/heads/main$' \
-            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-            "${IMAGE}@${DIGEST}" > /dev/null
+      - uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26  # v4.1.0
+        with:
+          subject-name: ghcr.io/tempusbuild/runner-ubuntu-24.04
+          subject-digest: ${{ steps.build.outputs.digest }}
+          sbom-path: sbom.spdx.json
+          push-to-registry: true
+          create-storage-record: false
       - uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32  # v4.1.0
         with:
           subject-name: ghcr.io/tempusbuild/runner-ubuntu-24.04
