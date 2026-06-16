@@ -97,7 +97,7 @@ ARG HELM_VERSION=3.21.1
 ARG HELM_SHA256=a349c62d6ab2d5d11f044fc0d3afa6deed7d27cc7d5c351f536b169d9fc2cc1a
 
 # AWS CLI v2 pinned installer + SHA256. Azure CLI and Google Cloud CLI come from vendor apt repos.
-ARG AWSCLI_VERSION=2.35.4
+ARG AWSCLI_VERSION=2.35.6
 ARG AWSCLI_SHA256=eb037f2df27b653b24b7942fdd7c62bb350354a906c16f70e82d92a2ce49084b
 
 # Browser drivers. geckodriver + Selenium server are pinned (SHA256); chromedriver/msedgedriver
