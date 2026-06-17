@@ -187,7 +187,7 @@ ARG ANDROID_PLATFORM=android-35
 
 # Environment managers + AWS SAM. Homebrew/vcpkg are pinned by git tag; Miniconda/SAM by SHA256.
 # MINICONDA_VERSION is bumped manually (no Renovate datasource for its pyXXX_NN.N.N-N installer name).
-ARG HOMEBREW_VERSION=6.0.1
+ARG HOMEBREW_VERSION=6.0.2
 ARG VCPKG_VERSION=2026.06.01
 ARG MINICONDA_VERSION=py313_26.3.2-2
 ARG MINICONDA_SHA256=2284bafb7863a23411b19874d216e237964d4b32dd9beb6807fa8b2d84570961
