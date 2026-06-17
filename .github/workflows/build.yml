@@ -157,7 +157,7 @@ jobs:
           retry() { local n=1; until "$@"; do [ "$n" -ge 4 ] && return 1; echo "retry $n in $((n*20))s" >&2; sleep $((n*20)); n=$((n+1)); done; }
           cosign signing-config create --with-default-services --no-default-rekor --out signing-config.json
           retry cosign attest --yes --timeout 5m \
-            --use-signing-config --signing-config signing-config.json \
+            --new-bundle-format --signing-config signing-config.json \
             --type cyclonedx --predicate sbom.cdx.json \
             "${IMAGE}@${DIGEST}"
       - uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32  # v4.1.0
