@@ -13,11 +13,11 @@ Tags: `vYYYYMMDD` and `sha-<commit>` (no floating `:latest` — consumers pin `t
 All images from `main` are signed with **cosign keyless** (Sigstore / Fulcio + Rekor, GitHub Actions
 OIDC) and carry **SLSA provenance** and an **SBOM** attestation. The signature is applied only after a
 green trivy scan of the published-by-digest artifact, so a valid signature means the image passed the
-CVE gate.
+CVE gate. The SBOM predicate is too large for a transparency-log entry, so it is timestamped by the
+Sigstore TSA (RFC3161) instead of logged to Rekor; the image signature and provenance are in Rekor.
 
-Requires [cosign](https://github.com/sigstore/cosign) (step 1, signature) and `docker buildx`
-(steps 2–3, attestations). Everywhere below, work against the immutable `@sha256:` digest rather than
-a floating tag.
+Requires [cosign](https://github.com/sigstore/cosign) (steps 1, 3) and the `gh` CLI (step 2).
+Everywhere below, work against the immutable `@sha256:` digest rather than a floating tag.
 
 ```sh
 IMAGE=ghcr.io/tempusbuild/runner-ubuntu-24.04
@@ -49,16 +49,23 @@ gh attestation verify "oci://${IMAGE}@${DIGEST}" --owner tempusbuild
 
 ### 3. SBOM (CycloneDX)
 
-A package-level CycloneDX SBOM is a Sigstore-signed attestation (`actions/attest`) pushed to the
-registry next to the digest. Verify with the `gh` CLI:
+A package-level CycloneDX SBOM is a cosign keyless attestation attached to the digest. Being too large
+for Rekor, it is TSA-timestamped instead of logged — so verification ignores the transparency log and
+checks the RFC3161 timestamp:
 
 ```sh
-gh attestation verify "oci://${IMAGE}@${DIGEST}" --owner tempusbuild
+cosign verify-attestation \
+  --type cyclonedx \
+  --insecure-ignore-tlog \
+  --use-signed-timestamps \
+  --certificate-identity-regexp '^https://github\.com/tempusbuild/runner-images/\.github/workflows/build\.yml@refs/heads/main$' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  "${IMAGE}@${DIGEST}"
 ```
 
-(Package-level CycloneDX — file-level cataloguing or SPDX would push the predicate past GitHub
-attest's size cap.) The image signature in step 1 is the cryptographic anchor; provenance and SBOM
-bind to the same digest.
+`--insecure-ignore-tlog` only waives the Rekor lookup; identity, signature and the TSA timestamp are
+still verified (the TSA cert chain comes from the Sigstore TUF root). The image signature in step 1 is
+the cryptographic anchor; provenance and SBOM bind to the same digest.
 
 ## Vulnerability (CVE) policy
 

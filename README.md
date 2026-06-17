@@ -40,7 +40,7 @@ just ci      # everything CI runs: lint + build/test/scan of both images
 
 - `test` — on PR: lint + build (full + minimal) + size gate + smoke + trivy.
 - `build` — on push to `main` / manual: build → smoke + trivy scan by digest → tags →
-  **cosign sign + SBOM + SLSA provenance + GitHub attestations**.
+  **cosign sign + SBOM + SLSA provenance attestations**.
 - `weekly-rebuild` — weekly: rebuild for security patches + re-sign.
 - `scorecard` — OpenSSF Scorecard (supply-chain posture); `codeql` — SAST for the workflows.
 - `ghcr-cleanup` — monthly: prune untagged image versions; scheduled failures auto-open an issue.
