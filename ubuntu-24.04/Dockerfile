@@ -160,7 +160,7 @@ ARG KOTLIN_VERSION=2.4.0
 ARG KOTLIN_SHA256=ba1b9e6eb6ddc3275079224f2e9ea4a2b02eef7d59ce2d38404f04b22613c20a
 ARG POWERSHELL_VERSION=7.4.16
 ARG POWERSHELL_SHA256=a3c06b24b548224f1fd0054dc21120464fe5c0dc1709a74134c5eb515d763862
-ARG GHCUP_VERSION=0.2.6.1
+ARG GHCUP_VERSION=0.2.6.2
 ARG GHCUP_SHA256=64ffb8cd158fce5cbc6d2d2c5b6e2afa082aadd890d7f86eed0dff63cb8fa156
 # ghc/cabal/stack are installed through ghcup, so their versions are bounded by ghcup's
 # metadata catalog, not upstream GitHub releases — bump only to a ghcup-available version
