@@ -135,7 +135,7 @@ jobs:
             --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
             "${IMAGE}@${DIGEST}"
 
-      # 6) Package-level CycloneDX SBOM — more compact than SPDX, which exceeds GitHub attest's 16 MiB cap.
+      # 6) SBOM, attached to the digest as a cosign attestation.
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
         env:
           SYFT_FILE_METADATA_SELECTION: none
@@ -146,13 +146,20 @@ jobs:
           format: cyclonedx-json
           output-file: sbom.cdx.json
           upload-artifact: false
-      - uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26  # v4.1.0
-        with:
-          subject-name: ghcr.io/tempusbuild/runner-ubuntu-24.04
-          subject-digest: ${{ steps.build.outputs.digest }}
-          sbom-path: sbom.cdx.json
-          push-to-registry: true
-          create-storage-record: false
+      # The SBOM predicate is too large for a transparency-log entry, so it is TSA-timestamped
+      # (RFC3161) instead of logged to Rekor — unlike the small image signature.
+      - name: Attest SBOM (cosign keyless / OIDC, TSA-timestamped)
+        env:
+          IMAGE: ghcr.io/tempusbuild/runner-ubuntu-24.04
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          retry() { local n=1; until "$@"; do [ "$n" -ge 4 ] && return 1; echo "retry $n in $((n*20))s" >&2; sleep $((n*20)); n=$((n+1)); done; }
+          cosign signing-config create --with-default-services --no-default-rekor --out signing-config.json
+          retry cosign attest --yes --timeout 5m \
+            --use-signing-config --signing-config signing-config.json \
+            --type cyclonedx --predicate sbom.cdx.json \
+            "${IMAGE}@${DIGEST}"
       - uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32  # v4.1.0
         with:
           subject-name: ghcr.io/tempusbuild/runner-ubuntu-24.04
