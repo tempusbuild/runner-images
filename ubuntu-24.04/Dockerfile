@@ -19,9 +19,9 @@ ARG PYTHON_311=3.11.15
 ARG PYTHON_312=3.12.13
 ARG PYTHON_313=3.13.14
 ARG PYTHON_314=3.14.6
-ARG PYTHON_310_SHA256=4ebefe0bdcd96dabd2e8e37388a758ecf5cc9a7738ec2bc57d60bdfc1b9966f5
-ARG PYTHON_311_SHA256=f9b44dbcda5044f5b687e3c30bd0a4eacaafb8c9ae828542f474050bf79235c9
-ARG PYTHON_312_SHA256=ca90dadd4f33275e829935a948d77b7b51b91e8463fd84f40ac6deaa99e14726
+ARG PYTHON_310_SHA256=1604488f2d04e0dd2e4437cc918cb4adc25f1e6dd7a7d1ccbc9e79681e2678f1
+ARG PYTHON_311_SHA256=a972aa7e44f1596aa63274a9ac58dbc2349c321f3f78b1c0fc5a60d5d69a6402
+ARG PYTHON_312_SHA256=ce7d511228f095b5ea1ad5568543388870f5964688303f9ddc24ba06c336bfba
 ARG PYTHON_313_SHA256=c54b2ef814e8002782c04e8fec521dda72cad93f3d1a835cb65b49f769b38842
 ARG PYTHON_314_SHA256=29dc7f3887a430fe7a0005fee4732b00be1bbed5bf21aa1e43f8d947eb1b9f61
 # 3.10/3.11 bundle an old setuptools with vulnerable vendored copies (CVE-2026-23949/-24049) —
@@ -40,10 +40,10 @@ ARG GO_126_SHA256=1153d3d50e0ac764b447adfe05c2bcf08e889d42a02e0fe0259bd47f6733ad
 
 # Node.js toolcache (matches setup-node: offline cache hit). Newest patch of each cached major
 # (22, 24); SHA256 from nodejs.org SHASUMS256.txt. NODE_MAJOR above is the system Node (apt).
-ARG NODE_TC_22=22.22.3
-ARG NODE_TC_24=24.16.0
-ARG NODE_TC_22_SHA256=c7a10d6816da8eaaa7534dd73c71c6e2b2c391dbbf845e364902d156615dd1b8
-ARG NODE_TC_24_SHA256=2faf6a387e9b62b888e21c54f01249fb27537ffecf1842f29f4c919d0a59a0ff
+ARG NODE_TC_22=22.23.0
+ARG NODE_TC_24=24.17.0
+ARG NODE_TC_22_SHA256=535eeb608ca1e0b71d49a0e36991d449d5f935fbb04eca61677519b010cd673a
+ARG NODE_TC_24_SHA256=e0472427aa791ad80bdc426ff7cc73cdd28ed0f616d1ff9689a23a7f47f1265f
 
 # Ruby toolcache (matches ruby/setup-ruby): prebuilt ruby-builder tarballs for ubuntu-24.04.
 ARG RUBY_32=3.2.11
@@ -87,7 +87,7 @@ ARG CMAKE4_SHA256=927b2368a946c37269c3a66225ab00544e756459cdd0b5d0da438694fb9ff8
 ARG GITLFS_VERSION=3.7.1
 ARG GITLFS_SHA256=1c0b6ee5200ca708c5cebebb18fdeb0e1c98f1af5c1a9cba205a4c0ab5a5ec08
 # pipx pinned via pip (Ubuntu's apt pipx lags behind ubuntu-latest).
-ARG PIPX_VERSION=1.14.0
+ARG PIPX_VERSION=1.14.1
 
 # zstd built from source + SHA256 (apt zstd lags; upstream ships no prebuilt linux binary).
 ARG ZSTD_VERSION=1.5.7
@@ -96,12 +96,12 @@ ARG ZSTD_SHA256=eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3
 # kubectl / Helm pinned binaries + SHA256. Helm stays on 3.x (ubuntu-latest parity), not v4 (major).
 ARG KUBECTL_VERSION=1.36.2
 ARG KUBECTL_SHA256=1e9045ec32bea85da43de85f0065358529ea7c7a152eca78154fba5b58c27d82
-ARG HELM_VERSION=3.21.1
-ARG HELM_SHA256=a349c62d6ab2d5d11f044fc0d3afa6deed7d27cc7d5c351f536b169d9fc2cc1a
+ARG HELM_VERSION=3.21.2
+ARG HELM_SHA256=0a745198de24545d0055cd8414bc8d2ba10363ef5f5d38369ea1b399671cc083
 
 # AWS CLI v2 pinned installer + SHA256. Azure CLI and Google Cloud CLI come from vendor apt repos.
-ARG AWSCLI_VERSION=2.35.6
-ARG AWSCLI_SHA256=d0f7ec7d325c5e24ea63dce6aebea72e9326eb18cf83727a71c0a81359e5da04
+ARG AWSCLI_VERSION=2.35.9
+ARG AWSCLI_SHA256=b331d4822a22612915f22f89cfd0e07895c7b6837999fca8fb9f6c2a370a54c0
 
 # Browser drivers. geckodriver + Selenium server are pinned (SHA256); chromedriver/msedgedriver
 # float to match the apt browser version (fetched by version at build, like the browsers themselves).
@@ -136,16 +136,16 @@ ARG FASTLANE_VERSION=2.236.1
 # JVM project-management tools — Maven/Gradle pinned (Ant is from apt).
 ARG MAVEN_VERSION=3.9.16
 ARG MAVEN_SHA512=831a8591fe20c8243b1dbe7d71e3244f31d1665b0804b2e825e38cbbe5ce0cafb8338851f90780735568773e0a6cd07bbec107cda0b896b008b861075358b6f6
-ARG GRADLE_VERSION=9.5.1
-ARG GRADLE_SHA256=bafc141b619ad6350fd975fc903156dd5c151998cc8b058e8c1044ab5f7b031f
+ARG GRADLE_VERSION=9.6.0
+ARG GRADLE_SHA256=bbaeb2fef8710818cf0e261201dab964c572f92b942812df0c3620d62a529a01
 
 # Misc tools: Pulumi (pinned tarball), nvm (git tag), n (npm); Composer + PHPUnit (pinned phars).
-ARG PULUMI_VERSION=3.246.0
-ARG PULUMI_SHA256=249a797558718caa62f69e7259ba6a8af0d6da3be2caec31daca17cfbbb6c04f
+ARG PULUMI_VERSION=3.247.0
+ARG PULUMI_SHA256=1924bbd1653aeb26c730d130a6143cc637ed20f575803682bef454aea601e231
 # OpenTofu (MPL-2.0, OSS) — Terraform-compatible IaC; ubuntu-latest dropped Terraform (BSL), so this
 # is a deliberate OSS extra beyond strict parity.
-ARG OPENTOFU_VERSION=1.12.2
-ARG OPENTOFU_SHA256=dc0ad16a42b3bfb5f3ceff3dcd5e9cd4c55271fae9f4bfe611749ff8ae6ec23c
+ARG OPENTOFU_VERSION=1.12.3
+ARG OPENTOFU_SHA256=46b48c3438c65cf479fc076c9281422ffa2f493548d1e813d154c835c5986a08
 ARG NVM_VERSION=0.40.5
 ARG N_VERSION=10.2.0
 ARG COMPOSER_VERSION=2.10.1
@@ -158,10 +158,10 @@ ARG JULIA_VERSION=1.12.6
 ARG JULIA_SHA256=bbabf3bef19421a9dbd24a767d807606ab85e444323b5a1c73ffe293fa3d079a
 ARG KOTLIN_VERSION=2.4.0
 ARG KOTLIN_SHA256=ba1b9e6eb6ddc3275079224f2e9ea4a2b02eef7d59ce2d38404f04b22613c20a
-ARG POWERSHELL_VERSION=7.4.16
-ARG POWERSHELL_SHA256=a3c06b24b548224f1fd0054dc21120464fe5c0dc1709a74134c5eb515d763862
-ARG GHCUP_VERSION=0.2.6.1
-ARG GHCUP_SHA256=64ffb8cd158fce5cbc6d2d2c5b6e2afa082aadd890d7f86eed0dff63cb8fa156
+ARG POWERSHELL_VERSION=7.6.3
+ARG POWERSHELL_SHA256=856d0765d2332377f9d7a4aea76efdfde4de51446e7738dde2dfda41dba9e2a7
+ARG GHCUP_VERSION=0.2.6.2
+ARG GHCUP_SHA256=9ed5da5449b48043a0d17e767c05d2ef585e25a639bb934329496c6d2fad9cf8
 # ghc/cabal/stack are installed through ghcup, so their versions are bounded by ghcup's
 # metadata catalog, not upstream GitHub releases — bump only to a ghcup-available version
 # (verified by the build). No Renovate manager for these; they track ubuntu-latest's pins.
@@ -187,7 +187,7 @@ ARG ANDROID_PLATFORM=android-35
 
 # Environment managers + AWS SAM. Homebrew/vcpkg are pinned by git tag; Miniconda/SAM by SHA256.
 # MINICONDA_VERSION is bumped manually (no Renovate datasource for its pyXXX_NN.N.N-N installer name).
-ARG HOMEBREW_VERSION=6.0.1
+ARG HOMEBREW_VERSION=6.0.2
 ARG VCPKG_VERSION=2026.06.01
 ARG MINICONDA_VERSION=py313_26.3.2-2
 ARG MINICONDA_SHA256=2284bafb7863a23411b19874d216e237964d4b32dd9beb6807fa8b2d84570961
