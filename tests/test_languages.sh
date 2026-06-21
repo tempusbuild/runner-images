@@ -51,7 +51,7 @@ for v in 3.10.20 3.11.15; do
 done
 
 # Node toolcache (matches setup-node): each baked version runs and has a .complete marker.
-for v in 22.22.3 24.16.0; do
+for v in 22.23.0 24.17.0; do
   node_bin="${RUNNER_TOOL_CACHE}/node/${v}/x64/bin/node"
   [ -x "$node_bin" ] || { echo "MISSING node toolcache $v ($node_bin)" >&2; fails=$((fails+1)); }
   [ -f "${RUNNER_TOOL_CACHE}/node/${v}/x64.complete" ] || { echo "MISSING marker node/${v}/x64.complete" >&2; fails=$((fails+1)); }
@@ -118,7 +118,7 @@ julia --version | grep -q '1.12' || { echo "julia != 1.12: $(julia --version)" >
 { kotlinc -version 2>&1 | grep -q '2.4'; } || { echo "kotlin != 2.4" >&2; fails=$((fails+1)); }
 ghc --version | grep -q '9.14' || { echo "ghc != 9.14: $(ghc --version)" >&2; fails=$((fails+1)); }
 dotnet --list-sdks >/dev/null 2>&1 || { echo "dotnet fails to run" >&2; fails=$((fails+1)); }
-pwsh --version | grep -q '7.4' || { echo "pwsh != 7.4: $(pwsh --version)" >&2; fails=$((fails+1)); }
+pwsh --version | grep -q '7.6' || { echo "pwsh != 7.6: $(pwsh --version)" >&2; fails=$((fails+1)); }
 echo "ok: swift/julia/kotlin/haskell(ghc)/dotnet/powershell"
 
 [ "$fails" -eq 0 ] || { echo "SMOKE FAILURES (languages): $fails" >&2; exit 1; }
