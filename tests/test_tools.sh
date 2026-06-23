@@ -30,11 +30,12 @@ done
 zstd --version | grep -q 'v1.5.7' || { echo "zstd != 1.5.7: $(zstd --version)" >&2; fails=$((fails+1)); }
 echo "ok: gcc 12/13/14, clang 16/17/18, zstd 1.5.7"
 
-for tool in bazel bazelisk kind minikube kustomize packer bicep azcopy tofu \
-            podman buildah skopeo ansible yamllint newman parcel fastlane codeql; do
+for tool in bazel bazelisk kind minikube kustomize packer bicep azcopy azcopy10 tofu \
+            podman buildah skopeo docker-credential-ecr-login \
+            session-manager-plugin ansible yamllint newman parcel fastlane codeql; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
 done
-echo "ok: devops tools present (bazel/kind/minikube/kustomize/packer/bicep/azcopy/podman/buildah/skopeo/ansible/yamllint/newman/parcel/fastlane/codeql)"
+echo "ok: devops tools present (bazel/kind/minikube/kustomize/packer/bicep/azcopy/ecr-cred-helper/ssm-plugin/podman/buildah/skopeo/ansible/yamllint/newman/parcel/fastlane/codeql)"
 
 for tool in brew vcpkg sam; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
@@ -47,11 +48,22 @@ for tool in mvn gradle ant lerna; do
 done
 echo "ok: maven/gradle/ant/lerna"
 
+# Global npm CLIs (parity with ubuntu-latest's node_modules set).
+for tool in tsc webpack webpack-cli grunt gulp; do
+  command -v "$tool" >/dev/null || { echo "MISSING npm global: $tool" >&2; fails=$((fails+1)); }
+done
+echo "ok: npm globals (tsc/webpack/webpack-cli/grunt/gulp)"
+
 # PHP stack + misc tools (Pulumi, n, nvm, git-ftp, Sphinx search).
 for tool in php composer phpunit git-ftp pulumi n; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
 done
 php --version | grep -q 'PHP 8.3' || { echo "php != 8.3: $(php --version | head -1)" >&2; fails=$((fails+1)); }
+# Xdebug + PCOV are both installed; only Xdebug is enabled (parity with ubuntu-latest):
+# pcov stays in mods-available (installed) but is unlinked from conf.d (not loaded).
+php -m | grep -qi xdebug || { echo "MISSING: xdebug not enabled" >&2; fails=$((fails+1)); }
+[ -f /etc/php/8.3/mods-available/pcov.ini ] || { echo "MISSING: pcov not installed" >&2; fails=$((fails+1)); }
+! php -m | grep -qi pcov || { echo "pcov should be installed but disabled" >&2; fails=$((fails+1)); }
 { command -v searchd >/dev/null || command -v indexer >/dev/null; } || { echo "MISSING sphinxsearch" >&2; fails=$((fails+1)); }
 [ -s "${NVM_DIR:-/usr/local/nvm}/nvm.sh" ] || { echo "MISSING nvm at ${NVM_DIR:-unset}" >&2; fails=$((fails+1)); }
 echo "ok: php 8.3 + composer/phpunit, git-ftp, pulumi, n, nvm, sphinxsearch"
@@ -67,7 +79,16 @@ for tool in sdkmanager adb; do
 done
 [ -d "${ANDROID_NDK_HOME}" ] || { echo "MISSING NDK at ${ANDROID_NDK_HOME:-unset}" >&2; fails=$((fails+1)); }
 [ -d "${ANDROID_NDK_LATEST_HOME}" ] || { echo "MISSING NDK latest at ${ANDROID_NDK_LATEST_HOME:-unset}" >&2; fails=$((fails+1)); }
-echo "ok: android sdk + ndk (27 + 29)"
+# Full matrix (parity with ubuntu-latest): 3 NDKs (27/28/29), multiple platforms + build-tools,
+# the m2repository/play-services extras, and the sdkmanager CMake builds — counts, since the exact
+# set tracks whatever was available at build time.
+ah="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+[ "$(find "$ah/ndk" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)" -ge 3 ] || { echo "Android: expected >=3 NDKs" >&2; fails=$((fails+1)); }
+[ "$(find "$ah/platforms" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)" -ge 4 ] || { echo "Android: expected >=4 platforms" >&2; fails=$((fails+1)); }
+[ "$(find "$ah/build-tools" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)" -ge 4 ] || { echo "Android: expected >=4 build-tools" >&2; fails=$((fails+1)); }
+[ -d "$ah/cmake" ] || { echo "Android: missing sdkmanager CMake" >&2; fails=$((fails+1)); }
+[ -d "$ah/extras/google/m2repository" ] || { echo "Android: missing google m2repository extra" >&2; fails=$((fails+1)); }
+echo "ok: android sdk full matrix (ndk 27/28/29, platforms+build-tools >=34, extras, cmake)"
 
 for tool in aws az gcloud; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
@@ -99,11 +120,27 @@ done
 echo "ok: browsers (chrome/edge/firefox) + drivers + selenium present, launch, and driver env vars set"
 
 # Build toolchain: unversioned gcc/cc/g++/make from build-essential + autotools (./configure chain).
-for tool in gcc cc g++ make autoconf automake libtoolize m4 bison flex swig patchelf fakeroot rpm; do
+for tool in gcc cc g++ make ninja autoconf automake libtoolize m4 bison flex swig patchelf fakeroot rpm; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
 done
 [ -f /usr/include/sqlite3.h ] || { echo "MISSING: libsqlite3-dev headers" >&2; fails=$((fails+1)); }
 echo "ok: build toolchain + autotools"
+
+# Dev headers for common native extensions (pylibmc, mysqlclient, python-ldap, pycurl, pysasl…).
+# Compile-check via gcc so multiarch include dirs (curl/gmp) are covered like a real build.
+for hdr in libmemcached/memcached.h ldap.h sasl/sasl.h krb5.h gmp.h curl/curl.h; do
+  echo "#include <$hdr>" | gcc -fsyntax-only -xc - 2>/dev/null \
+    || { echo "MISSING dev header: $hdr" >&2; fails=$((fails+1)); }
+done
+mycfg=$(command -v mariadb_config || command -v mysql_config || true)
+if [ -n "$mycfg" ]; then
+  read -ra myinc <<< "$("$mycfg" --include)"
+  echo '#include <mysql.h>' | gcc -fsyntax-only -xc - "${myinc[@]}" 2>/dev/null \
+    || { echo "MISSING dev header: mysql.h (default-libmysqlclient-dev)" >&2; fails=$((fails+1)); }
+else
+  echo "MISSING: mariadb_config/mysql_config" >&2; fails=$((fails+1))
+fi
+echo "ok: native-extension dev headers (memcached/mysql/ldap/sasl/krb5/gmp/curl)"
 
 for tool in shellcheck parallel hg python perl file tree brotli pigz lz4 xz zsync \
             mediainfo makeinfo sshpass pollinate aria2c upx certutil; do

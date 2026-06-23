@@ -17,6 +17,7 @@ sudo
 podman
 buildah
 skopeo
+amazon-ecr-credential-helper
 ant
 sphinxsearch
 php8.3-cli
@@ -33,6 +34,10 @@ php8.3-pgsql
 php8.3-sqlite3
 php8.3-soap
 php8.3-gmp
+php8.3-memcache
+php8.3-memcached
+php8.3-xdebug
+php8.3-pcov
 apache2
 nginx
 build-essential
@@ -73,6 +78,13 @@ libxslt1-dev
 zlib1g-dev
 libjpeg-dev
 libsqlite3-dev
+libmemcached-dev
+default-libmysqlclient-dev
+libldap-dev
+libsasl2-dev
+libkrb5-dev
+libcurl4-openssl-dev
+libgmp-dev
 autoconf
 automake
 libtool
@@ -84,6 +96,7 @@ patchelf
 fakeroot
 rpm
 make
+ninja-build
 dpkg-dev
 shellcheck
 p7zip-full

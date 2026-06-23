@@ -564,6 +564,69 @@
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^ruby-(?<version>\\d+\\.\\d+\\.\\d+)$",
       "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG TYPESCRIPT_VERSION → npm 'typescript'.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG TYPESCRIPT_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "typescript",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "description": "ARG WEBPACK_VERSION → npm 'webpack'.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG WEBPACK_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "webpack",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "description": "ARG WEBPACK_CLI_VERSION → npm 'webpack-cli'.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG WEBPACK_CLI_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "webpack-cli",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "description": "ARG GRUNT_VERSION → npm 'grunt'.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG GRUNT_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "grunt",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "description": "ARG GULP_VERSION → npm 'gulp'.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG GULP_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "gulp",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    },
+    {
+      "description": "ARG MULTIJSON_VERSION → RubyGems multi_json.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG MULTIJSON_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "multi_json",
+      "datasourceTemplate": "rubygems",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG SSM_PLUGIN_VERSION → aws/session-manager-plugin tags (4-part, no v prefix). Does NOT bump SSM_PLUGIN_SHA256 — recompute the deb hash manually on bump.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG SSM_PLUGIN_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "aws/session-manager-plugin",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "loose"
     }
   ]
 }
