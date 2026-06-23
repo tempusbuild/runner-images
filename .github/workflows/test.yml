@@ -99,7 +99,7 @@ jobs:
       - name: Image size gate
         if: needs.changes.outputs.image == 'true'
         env:
-          MAX_BYTES: "42000000000"   # budget; CI-measured ~36 GiB (full ubuntu-latest parity)
+          MAX_BYTES: "48000000000"   # budget; CI-measured ~41.6 GiB (full parity + full Android matrix + native-build dev libs)
         run: |
           set -euo pipefail
           size=$(docker image inspect tempusbuild/runner-ubuntu-24.04:pr --format '{{.Size}}')
