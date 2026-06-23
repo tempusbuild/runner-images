@@ -142,6 +142,17 @@ else
 fi
 echo "ok: native-extension dev headers (memcached/mysql/ldap/sasl/krb5/gmp/curl)"
 
+# More native-build dev headers (imaging, crypto, compression, DB/ODBC, systemd, kafka) + build tools.
+for hdr in sodium.h magic.h snappy-c.h sql.h systemd/sd-bus.h librdkafka/rdkafka.h lcms2.h \
+           webp/decode.h tiff.h gdbm.h zstd.h lz4.h bzlib.h lzma.h readline/readline.h uuid/uuid.h; do
+  echo "#include <$hdr>" | gcc -fsyntax-only -xc - 2>/dev/null \
+    || { echo "MISSING dev header: $hdr" >&2; fails=$((fails+1)); }
+done
+for tool in protoc ccache meson; do
+  command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
+done
+echo "ok: extra dev headers (sodium/magic/snappy/odbc/systemd/rdkafka/imaging/compression) + protoc/ccache/meson"
+
 for tool in shellcheck parallel hg python perl file tree brotli pigz lz4 xz zsync \
             mediainfo makeinfo sshpass pollinate aria2c upx certutil; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }

@@ -51,11 +51,18 @@ After publishing to ghcr, pin `tag@sha256:` on the consumer side.
 Included:
 
 - system `python3` (3.12) + `pip` + `venv` + dev headers (`python3-dev`), build toolchain
-  (`build-essential`, `pkg-config`, `ninja-build`) and dev libraries (`libffi-dev`, `libssl-dev`,
-  `libpq-dev`, `libxml2-dev`, `libxslt1-dev`, `zlib1g-dev`, `libjpeg-dev`) plus a curated set of
-  headers for common native extensions beyond the ubuntu-latest set (`libmemcached-dev`,
-  `default-libmysqlclient-dev`, `libldap-dev`, `libsasl2-dev`, `libkrb5-dev`, `libcurl4-openssl-dev`,
-  `libgmp-dev`) — building native wheels (`pylibmc`, `mysqlclient`, `python-ldap`, `pycurl`…) works;
+  (`build-essential`, `pkg-config`, `ninja-build`, `meson`, `ccache`, `protobuf-compiler`) and a
+  broad set of dev libraries for native builds — imaging (`libjpeg-dev`, `libpng-dev`,
+  `libfreetype-dev`, `libwebp-dev`, `libtiff-dev`, `liblcms2-dev`, `libopenjp2-7-dev`, `libvips-dev`),
+  crypto/auth (`libssl-dev`, `libsodium-dev`, `libsasl2-dev`, `libkrb5-dev`, `libldap-dev`),
+  DB/connectors (`libpq-dev`, `default-libmysqlclient-dev`, `libmemcached-dev`, `unixodbc-dev`),
+  compression (`zlib1g-dev`, `libbz2-dev`, `liblzma-dev`, `libzstd-dev`, `liblz4-dev`, `libsnappy-dev`),
+  data/IO (`libhdf5-dev`, `librdkafka-dev`, `libopenblas-dev`, `liblapack-dev`), and system/runtime
+  (`libffi-dev`, `libcurl4-openssl-dev`, `libgmp-dev`, `libxml2-dev`, `libxslt1-dev`, `libmagic-dev`,
+  `libreadline-dev`, `libncurses-dev`, `libgdbm-dev`, `tk-dev`, `uuid-dev`, `libsystemd-dev`,
+  `libdbus-1-dev`, `libglib2.0-dev`, `libsqlite3-dev`, `libyaml-dev`) — many beyond the ubuntu-latest
+  set, so common native wheels (`pylibmc`, `mysqlclient`, `python-ldap`, `pycurl`, `Pillow`, `pyodbc`,
+  `PyNaCl`, `h5py`…) compile out of the box;
 - `pipx` for isolated CLI tools;
 - toolcache Python 3.10 / 3.11 / 3.12 / 3.13 / 3.14 → `setup-python` resolves offline (cache hit);
 - toolcache Go 1.25 / 1.26 → `actions/setup-go` resolves offline (cache hit); the newest (1.26) is
@@ -130,12 +137,12 @@ Deliberate exceptions:
 - **`systemd-coredump` is NOT installed**: the runner executes as a container under ARC (no `systemd`
   as PID 1), so it would be inert and only adds `systemd` surface. Everything else in the documented
   ubuntu-latest apt set is present.
-- **A small curated superset beyond ubuntu-latest** (batteries-included): dev headers for common
-  native extensions (`libmemcached-dev`, `default-libmysqlclient-dev`, `libldap-dev`, `libsasl2-dev`,
-  `libkrb5-dev`, `libcurl4-openssl-dev`, `libgmp-dev`) are preinstalled so native extensions such as
-  `pylibmc`, `mysqlclient`, `python-ldap` and `pycurl` compile without a per-workflow `apt-get` step.
-  These are NOT on ubuntu-latest — workflows relying on them are not portable back to GitHub-hosted
-  runners.
+- **A curated superset beyond ubuntu-latest** (batteries-included): a broad set of native-build dev
+  headers and tools (imaging, crypto, compression, DB/ODBC, systemd, kafka, BLAS/HDF5 — see the
+  toolset list above — plus `protobuf-compiler`, `meson` and `ccache`) is preinstalled so common
+  native wheels (`pylibmc`, `mysqlclient`, `python-ldap`, `pycurl`, `Pillow`, `pyodbc`, `PyNaCl`,
+  `h5py`…) compile without a per-workflow `apt-get` step. Many are NOT on ubuntu-latest — workflows
+  relying on them are not portable back to GitHub-hosted runners.
 
 **PEP 668 (externally managed):** the system `python3` is marked externally managed, so a global
 `pip install <pkg>` fails by design. The standard path is `python -m venv` (inside a venv the
