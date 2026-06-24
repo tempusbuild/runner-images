@@ -102,6 +102,9 @@ ARG HELM_SHA256=0a745198de24545d0055cd8414bc8d2ba10363ef5f5d38369ea1b399671cc083
 # AWS CLI v2 pinned installer + SHA256. Azure CLI and Google Cloud CLI come from vendor apt repos.
 ARG AWSCLI_VERSION=2.35.9
 ARG AWSCLI_SHA256=b331d4822a22612915f22f89cfd0e07895c7b6837999fca8fb9f6c2a370a54c0
+# AWS Session Manager plugin (.deb from AWS S3) — pinned version + SHA256 of the deb.
+ARG SSM_PLUGIN_VERSION=1.2.835.0
+ARG SSM_PLUGIN_SHA256=7c6dcad12518571cc7959a713e6a8ae1bdf6ed66fd9bee37dc189e39ca58ae03
 
 # Browser drivers. geckodriver + Selenium server are pinned (SHA256); chromedriver/msedgedriver
 # float to match the apt browser version (fetched by version at build, like the browsers themselves).
@@ -131,7 +134,13 @@ ARG CODEQL_SHA256=55c5a760f8a98d882ce452f69c427116a034d91450c627bef717d4acd89663
 ARG NEWMAN_VERSION=6.2.2
 ARG PARCEL_VERSION=2.16.4
 ARG LERNA_VERSION=9.0.7
+ARG TYPESCRIPT_VERSION=6.0.3
+ARG WEBPACK_VERSION=5.107.2
+ARG WEBPACK_CLI_VERSION=7.0.3
+ARG GRUNT_VERSION=1.6.2
+ARG GULP_VERSION=5.0.1
 ARG FASTLANE_VERSION=2.236.1
+ARG MULTIJSON_VERSION=1.21.1
 
 # JVM project-management tools — Maven/Gradle pinned (Ant is from apt).
 ARG MAVEN_VERSION=3.9.16
@@ -181,9 +190,15 @@ ARG DOTNET_INSTALL_SHA256=082f7685e156738a1b2e2ed8381a621870d4ce8e8c59278034556f
 ARG ANDROID_CMDLINE_VERSION=14742923
 ARG ANDROID_CMDLINE_SHA256=04453066b540409d975c676d781da1477479dde3761310f1a7eb92a1dfb15af7
 ARG ANDROID_NDK_VERSION=27.3.13750724
+ARG ANDROID_NDK_28_VERSION=28.2.13676358
 ARG ANDROID_NDK_LATEST_VERSION=29.0.14206865
-ARG ANDROID_BUILD_TOOLS=35.0.0
-ARG ANDROID_PLATFORM=android-35
+# Full Android matrix (parity with ubuntu-latest): every platforms/build-tools >= the minimum is
+# installed dynamically via sdkmanager (mirrors actions/runner-images install-android-sdk.sh), plus
+# the m2repository/play-services extras and the sdkmanager CMake builds.
+ARG ANDROID_PLATFORM_MIN=34
+ARG ANDROID_BUILD_TOOLS_MIN=34.0.0
+ARG ANDROID_CMAKE1_VERSION=3.31.5
+ARG ANDROID_CMAKE2_VERSION=4.1.2
 
 # Environment managers + AWS SAM. Homebrew/vcpkg are pinned by git tag; Miniconda/SAM by SHA256.
 # MINICONDA_VERSION is bumped manually (no Renovate datasource for its pyXXX_NN.N.N-N installer name).
@@ -227,6 +242,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 COPY packages.txt /tmp/packages.txt
 RUN apt-get update \
     && xargs -a /tmp/packages.txt apt-get install -y --no-install-recommends \
+    && phpdismod -v 8.3 pcov \
     && rm -rf /var/lib/apt/lists/* /tmp/packages.txt
 
 # Newer Git from the maintainers' PPA (Ubuntu ships an older point release) — version parity.
@@ -320,9 +336,15 @@ RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-${AWSCLI_VE
     && echo "${AWSCLI_SHA256}  /tmp/awscliv2.zip" | sha256sum -c - \
     && unzip -q /tmp/awscliv2.zip -d /tmp \
     && /tmp/aws/install \
-    && rm -rf /tmp/awscliv2.zip /tmp/aws
+    && curl -fsSL "https://s3.amazonaws.com/session-manager-downloads/plugin/${SSM_PLUGIN_VERSION}/ubuntu_64bit/session-manager-plugin.deb" -o /tmp/ssm.deb \
+    && echo "${SSM_PLUGIN_SHA256}  /tmp/ssm.deb" | sha256sum -c - \
+    && dpkg -i /tmp/ssm.deb \
+    && rm -rf /tmp/awscliv2.zip /tmp/aws /tmp/ssm.deb
 
-# Azure CLI from the Microsoft apt repo.
+# Azure CLI from the Microsoft apt repo, + the azure-devops extension into a shared extension dir
+# (AZURE_EXTENSION_DIR persists to runtime, world-readable, so the runner user resolves `az devops`)
+# — matches ubuntu-latest's install-azure-devops-cli.sh.
+ENV AZURE_EXTENSION_DIR=/opt/az/azcliextensions
 # hadolint ignore=DL3008
 RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg \
     && chmod a+r /etc/apt/keyrings/microsoft.gpg \
@@ -330,6 +352,8 @@ RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor
        > /etc/apt/sources.list.d/azure-cli.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends azure-cli \
+    && mkdir -p "${AZURE_EXTENSION_DIR}" \
+    && az extension add -n azure-devops \
     && rm -rf /var/lib/apt/lists/*
 
 # Google Cloud CLI from the Google apt repo.
@@ -443,6 +467,7 @@ RUN curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/k
     && curl -fsSL "https://github.com/Azure/azure-storage-azcopy/releases/download/v${AZCOPY_VERSION}/azcopy_linux_amd64_${AZCOPY_VERSION}.tar.gz" -o /tmp/azcopy.tgz \
     && echo "${AZCOPY_SHA256}  /tmp/azcopy.tgz" | sha256sum -c - && tar -xzf /tmp/azcopy.tgz -C /tmp \
     && install -m 0755 "/tmp/azcopy_linux_amd64_${AZCOPY_VERSION}/azcopy" /usr/local/bin/azcopy \
+    && ln -s azcopy /usr/local/bin/azcopy10 \
     && rm -rf /tmp/kustomize.tgz /tmp/packer.zip /tmp/azcopy.tgz "/tmp/azcopy_linux_amd64_${AZCOPY_VERSION}"
 
 # Ansible + yamllint via pipx (shared bin dir); Newman + Parcel via npm; Fastlane via gem.
@@ -451,8 +476,11 @@ RUN curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/k
 RUN PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install --include-deps ansible \
     && PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install yamllint \
     && npm install -g "newman@${NEWMAN_VERSION}" "parcel@${PARCEL_VERSION}" "lerna@${LERNA_VERSION}" "n@${N_VERSION}" \
+         "typescript@${TYPESCRIPT_VERSION}" "webpack@${WEBPACK_VERSION}" "webpack-cli@${WEBPACK_CLI_VERSION}" \
+         "grunt@${GRUNT_VERSION}" "gulp@${GULP_VERSION}" \
     && npm cache clean --force \
-    && gem install --no-document fastlane -v "${FASTLANE_VERSION}"
+    && gem install --no-document fastlane -v "${FASTLANE_VERSION}" \
+    && gem install --no-document multi_json -v "${MULTIJSON_VERSION}"
 
 RUN curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" -o /tmp/maven.tar.gz \
     && echo "${MAVEN_SHA512}  /tmp/maven.tar.gz" | sha512sum -c - \
@@ -724,19 +752,33 @@ RUN git clone --depth 1 --branch "${VCPKG_VERSION}" https://github.com/microsoft
 RUN git clone --depth 1 --branch "v${NVM_VERSION}" https://github.com/nvm-sh/nvm /usr/local/nvm \
     && chown -R runner:runner /usr/local/nvm
 
-# Android SDK + NDK (cmdline-tools pinned + SHA256; components via sdkmanager on Temurin). Core set;
-# extra API levels/build-tools install on demand via sdkmanager. Owned by runner.
-RUN mkdir -p /usr/local/lib/android/sdk/cmdline-tools \
-    && curl -fsSL "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_VERSION}_latest.zip" -o /tmp/cmdtools.zip \
-    && echo "${ANDROID_CMDLINE_SHA256}  /tmp/cmdtools.zip" | sha256sum -c - \
-    && unzip -q /tmp/cmdtools.zip -d /tmp/cmdtools \
-    && mv /tmp/cmdtools/cmdline-tools /usr/local/lib/android/sdk/cmdline-tools/latest \
-    && { yes 2>/dev/null || true; } | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/usr/local/lib/android/sdk --licenses > /dev/null \
-    && /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/usr/local/lib/android/sdk \
-         "platform-tools" "build-tools;${ANDROID_BUILD_TOOLS}" "platforms;${ANDROID_PLATFORM}" \
-         "ndk;${ANDROID_NDK_VERSION}" "ndk;${ANDROID_NDK_LATEST_VERSION}" > /dev/null \
-    && rm -rf /tmp/cmdtools.zip /tmp/cmdtools \
-    && chown -R runner:runner /usr/local/lib/android
+# Android SDK + NDK (cmdline-tools pinned + SHA256; full matrix via sdkmanager on Temurin): NDK 27/28/29,
+# the m2repository/play-services extras, two sdkmanager CMake builds, platform-tools, and every
+# platforms/build-tools >= the pinned minimums (resolved from `sdkmanager --list`, like ubuntu-latest's
+# install-android-sdk.sh). Owned by runner. sdkmanager verifies downloads against Google's signed repo.
+RUN set -euo pipefail; \
+    sdk=/usr/local/lib/android/sdk; mgr="$sdk/cmdline-tools/latest/bin/sdkmanager"; \
+    mkdir -p "$sdk/cmdline-tools"; \
+    curl -fsSL "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_VERSION}_latest.zip" -o /tmp/cmdtools.zip; \
+    echo "${ANDROID_CMDLINE_SHA256}  /tmp/cmdtools.zip" | sha256sum -c -; \
+    unzip -q /tmp/cmdtools.zip -d /tmp/cmdtools; \
+    mv /tmp/cmdtools/cmdline-tools "$sdk/cmdline-tools/latest"; \
+    yes 2>/dev/null | "$mgr" --sdk_root="$sdk" --licenses >/dev/null || true; \
+    listing="$("$mgr" --sdk_root="$sdk" --list)"; \
+    components=( "extras;android;m2repository" "extras;google;m2repository" "extras;google;google_play_services" \
+                 "cmake;${ANDROID_CMAKE1_VERSION}" "cmake;${ANDROID_CMAKE2_VERSION}" "platform-tools" \
+                 "ndk;${ANDROID_NDK_VERSION}" "ndk;${ANDROID_NDK_28_VERSION}" "ndk;${ANDROID_NDK_LATEST_VERSION}" ); \
+    for p in $(printf '%s\n' "$listing" | grep -oE 'platforms;android-[0-9.]+(-ext[0-9]+)?' | sort -u); do \
+      v="$(printf '%s' "$p" | grep -oE '[0-9.]+' | head -n1)"; \
+      if [ "$(printf '%s\n%s\n' "${ANDROID_PLATFORM_MIN}" "$v" | sort -V | head -n1)" = "${ANDROID_PLATFORM_MIN}" ]; then components+=("$p"); fi; \
+    done; \
+    for b in $(printf '%s\n' "$listing" | grep -oE 'build-tools;[0-9.]+(-rc[0-9]+)?' | grep -v rc | sort -u); do \
+      v="${b#build-tools;}"; \
+      if [ "$(printf '%s\n%s\n' "${ANDROID_BUILD_TOOLS_MIN}" "$v" | sort -V | head -n1)" = "${ANDROID_BUILD_TOOLS_MIN}" ]; then components+=("$b"); fi; \
+    done; \
+    echo y | "$mgr" --sdk_root="$sdk" "${components[@]}" >/dev/null; \
+    rm -rf /tmp/cmdtools.zip /tmp/cmdtools; \
+    chown -R runner:runner /usr/local/lib/android
 
 # Rust via pinned rustup-init (not `curl | sh`): tarball + SHA256, then an offline install of the
 # exact toolchain. The default profile installs rustc+cargo+rust-std+rustfmt+clippy. RUSTUP/CARGO_HOME

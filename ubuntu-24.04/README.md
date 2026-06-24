@@ -51,8 +51,18 @@ After publishing to ghcr, pin `tag@sha256:` on the consumer side.
 Included:
 
 - system `python3` (3.12) + `pip` + `venv` + dev headers (`python3-dev`), build toolchain
-  (`build-essential`, `pkg-config`) and dev libraries (`libffi-dev`, `libssl-dev`, `libpq-dev`,
-  `libxml2-dev`, `libxslt1-dev`, `zlib1g-dev`, `libjpeg-dev`) — building native wheels works;
+  (`build-essential`, `pkg-config`, `ninja-build`, `meson`, `ccache`, `protobuf-compiler`) and a
+  broad set of dev libraries for native builds — imaging (`libjpeg-dev`, `libpng-dev`,
+  `libfreetype-dev`, `libwebp-dev`, `libtiff-dev`, `liblcms2-dev`, `libopenjp2-7-dev`, `libvips-dev`),
+  crypto/auth (`libssl-dev`, `libsodium-dev`, `libsasl2-dev`, `libkrb5-dev`, `libldap-dev`),
+  DB/connectors (`libpq-dev`, `default-libmysqlclient-dev`, `libmemcached-dev`, `unixodbc-dev`),
+  compression (`zlib1g-dev`, `libbz2-dev`, `liblzma-dev`, `libzstd-dev`, `liblz4-dev`, `libsnappy-dev`),
+  data/IO (`libhdf5-dev`, `librdkafka-dev`, `libopenblas-dev`, `liblapack-dev`), and system/runtime
+  (`libffi-dev`, `libcurl4-openssl-dev`, `libgmp-dev`, `libxml2-dev`, `libxslt1-dev`, `libmagic-dev`,
+  `libreadline-dev`, `libncurses-dev`, `libgdbm-dev`, `tk-dev`, `uuid-dev`, `libsystemd-dev`,
+  `libdbus-1-dev`, `libglib2.0-dev`, `libsqlite3-dev`, `libyaml-dev`) — many beyond the ubuntu-latest
+  set, so common native wheels (`pylibmc`, `mysqlclient`, `python-ldap`, `pycurl`, `Pillow`, `pyodbc`,
+  `PyNaCl`, `h5py`…) compile out of the box;
 - `pipx` for isolated CLI tools;
 - toolcache Python 3.10 / 3.11 / 3.12 / 3.13 / 3.14 → `setup-python` resolves offline (cache hit);
 - toolcache Go 1.25 / 1.26 → `actions/setup-go` resolves offline (cache hit); the newest (1.26) is
@@ -66,7 +76,8 @@ Included:
 - common CLIs on `PATH`: `git`/`git-lfs`, `gh`, `ssh` (openssh-client), `rsync`, `jq`/`yq`,
   `sqlite3`, `cmake`, `clang`, `kubectl`, `helm`, `zstd`/`zip`/`unzip`, plus `yarn`/`pnpm` via
   `corepack`;
-- cloud CLIs on `PATH`: `aws` (AWS CLI v2), `az` (Azure CLI), `gcloud` (Google Cloud CLI);
+- cloud CLIs on `PATH`: `aws` (AWS CLI v2), `az` (Azure CLI, with the `azure-devops` extension),
+  `gcloud` (Google Cloud CLI);
 - Java: Eclipse Temurin JDK 8 / 11 / 17 / 21 / 25 (default 17; `JAVA_HOME` + `JAVA_HOME_<v>_X64` set);
 - compilers: GCC 12 / 13 / 14 (+ `gfortran`), Clang/LLVM 16 / 17 / 18 (+ `clang-format`, `clang-tidy`);
   the unversioned `gcc`/`cc`/`g++`/`make` (build-essential) plus the autotools chain (`autoconf`,
@@ -82,21 +93,26 @@ Included:
 - browsers + drivers: Google Chrome + ChromeDriver, Microsoft Edge + msedgedriver, Firefox (from the
   Mozilla apt repo, not snap) + geckodriver, and Selenium Server (`selenium-server`, runs on Temurin);
 - DevOps: Ansible, Bazel/Bazelisk, Podman/Buildah/Skopeo, Kind, Minikube, Kustomize, Packer, Bicep,
-  AzCopy, Newman, Parcel, Fastlane, yamllint, and the CodeQL bundle (in the toolcache + on `PATH`);
-  plus OpenTofu (`tofu`, MPL-2.0) — the OSS Terraform-compatible IaC tool (ubuntu-latest dropped
-  Terraform under its BSL license);
+  AzCopy (`azcopy`/`azcopy10`), Newman, Parcel, Fastlane, yamllint, the CodeQL bundle (in the
+  toolcache + on `PATH`), the Amazon ECR credential helper (`docker-credential-ecr-login`) and the
+  AWS Session Manager plugin (`session-manager-plugin`); plus OpenTofu (`tofu`, MPL-2.0) — the OSS
+  Terraform-compatible IaC tool (ubuntu-latest dropped Terraform under its BSL license);
 - environment managers + AWS SAM: Homebrew (`brew`), Miniconda (reachable via `$CONDA`), vcpkg
   (`$VCPKG_INSTALLATION_ROOT`), and `sam`;
-- JVM build tools: Maven, Gradle, Ant; `lerna` for JS monorepos;
+- JVM build tools: Maven, Gradle, Ant; global npm CLIs `lerna`, `typescript` (`tsc`), `webpack` +
+  `webpack-cli`, `grunt`, `gulp`;
 - webdriver env vars set as on ubuntu-latest: `CHROMEWEBDRIVER`, `EDGEWEBDRIVER`, `GECKOWEBDRIVER`,
   `SELENIUM_JAR_PATH`;
-- PHP 8.3 + extensions, Composer, PHPUnit; Pulumi; `n` and `nvm` (`$NVM_DIR`); `git-ftp`; Sphinx
-  search server;
+- PHP 8.3 + extensions (incl. `memcache`/`memcached`; Xdebug enabled, PCOV installed-but-disabled —
+  parity with ubuntu-latest), Composer, PHPUnit; Pulumi; `n` and `nvm` (`$NVM_DIR`); `git-ftp`;
+  Sphinx search server;
 - more languages: Swift 6.3, Julia 1.12, Kotlin 2.4, Haskell (GHC 9.14 / Cabal / Stack via `ghcup`),
-  .NET SDK 8/9/10 (+ `nbgv`), PowerShell 7.4 (+ Az / Microsoft.Graph / Pester / PSScriptAnalyzer);
+  .NET SDK 8/9/10 (+ `nbgv`), PowerShell 7.6 (+ Az / Microsoft.Graph / Pester / PSScriptAnalyzer);
 - web servers: Apache2 and Nginx;
-- Android: SDK (cmdline-tools, platform-tools, build-tools, platform) + NDK 27 & 29, with
-  `ANDROID_HOME`/`ANDROID_NDK*` env; extra API levels install on demand via `sdkmanager`.
+- Android: full ubuntu-latest matrix via `sdkmanager` — cmdline-tools, platform-tools, every
+  `platforms;android-*` and `build-tools` ≥ 34 (incl. the `-ext` platform variants), NDK 27 / 28 / 29,
+  the `m2repository` / Google Play services extras, and two CMake builds (3.31 / 4.1), with
+  `ANDROID_HOME`/`ANDROID_NDK*` env (default NDK 27, latest 29).
 
 ## Inclusion policy
 
@@ -115,11 +131,18 @@ Deliberate exceptions:
   baked toolcache for an EOL minor would carry image-unfixable HIGH/CRITICAL stdlib CVEs. Supported
   1.25/1.26 are baked patch-current; older minors install via `actions/setup-go` from the network.
 - **Patch-currency and the long tail track the newest pinned set**: toolcache patches
-  (Python/Go/Node/Ruby/PyPy) and the Android API-level / SDK matrix are pinned to a current set;
-  versions outside it install on demand via `setup-*` / `sdkmanager` (no cache hit).
+  (Python/Go/Node/Ruby/PyPy) are pinned to a current set; versions outside it install on demand via
+  `setup-*` (no cache hit). The Android matrix is resolved at build (every platform/build-tools ≥ the
+  pinned minimum, like ubuntu-latest); components published after a build install via `sdkmanager`.
 - **`systemd-coredump` is NOT installed**: the runner executes as a container under ARC (no `systemd`
   as PID 1), so it would be inert and only adds `systemd` surface. Everything else in the documented
   ubuntu-latest apt set is present.
+- **A curated superset beyond ubuntu-latest** (batteries-included): a broad set of native-build dev
+  headers and tools (imaging, crypto, compression, DB/ODBC, systemd, kafka, BLAS/HDF5 — see the
+  toolset list above — plus `protobuf-compiler`, `meson` and `ccache`) is preinstalled so common
+  native wheels (`pylibmc`, `mysqlclient`, `python-ldap`, `pycurl`, `Pillow`, `pyodbc`, `PyNaCl`,
+  `h5py`…) compile without a per-workflow `apt-get` step. Many are NOT on ubuntu-latest — workflows
+  relying on them are not portable back to GitHub-hosted runners.
 
 **PEP 668 (externally managed):** the system `python3` is marked externally managed, so a global
 `pip install <pkg>` fails by design. The standard path is `python -m venv` (inside a venv the
@@ -129,5 +152,5 @@ For CLI tools — `pipx`. This matches ubuntu-latest behaviour.
 ## Notes
 
 - Full ubuntu-latest toolset parity (see the inclusion policy above); the long tail (extra toolcache
-  patches, Android API levels) installs on demand via `setup-*` / `sdkmanager`.
+  patches, Android components published after the build) installs on demand via `setup-*` / `sdkmanager`.
 - The `minimal` variant (`../ubuntu-24.04-minimal/`) — no Node/Docker, just runner + base.
