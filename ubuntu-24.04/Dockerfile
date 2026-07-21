@@ -768,7 +768,7 @@ RUN set -euo pipefail; \
     components=( "extras;android;m2repository" "extras;google;m2repository" "extras;google;google_play_services" \
                  "cmake;${ANDROID_CMAKE1_VERSION}" "cmake;${ANDROID_CMAKE2_VERSION}" "platform-tools" \
                  "ndk;${ANDROID_NDK_VERSION}" "ndk;${ANDROID_NDK_28_VERSION}" "ndk;${ANDROID_NDK_LATEST_VERSION}" ); \
-    for p in $(printf '%s\n' "$listing" | grep -oE 'platforms;android-[0-9.]+(-ext[0-9]+)?' | sort -u); do \
+    for p in $(printf '%s\n' "$listing" | grep -oE 'platforms;android-[0-9]+(-ext[0-9]+)?([[:space:]|]|$)' | grep -oE 'platforms;android-[0-9]+(-ext[0-9]+)?' | sort -u); do \
       v="$(printf '%s' "$p" | grep -oE '[0-9.]+' | head -n1)"; \
       if [ "$(printf '%s\n%s\n' "${ANDROID_PLATFORM_MIN}" "$v" | sort -V | head -n1)" = "${ANDROID_PLATFORM_MIN}" ]; then components+=("$p"); fi; \
     done; \
