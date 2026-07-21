@@ -51,7 +51,7 @@ for v in 3.10.20 3.11.15; do
 done
 
 # Node toolcache (matches setup-node): each baked version runs and has a .complete marker.
-for v in 22.23.0 24.17.0; do
+for v in 22.23.1 24.18.0; do
   node_bin="${RUNNER_TOOL_CACHE}/node/${v}/x64/bin/node"
   [ -x "$node_bin" ] || { echo "MISSING node toolcache $v ($node_bin)" >&2; fails=$((fails+1)); }
   [ -f "${RUNNER_TOOL_CACHE}/node/${v}/x64.complete" ] || { echo "MISSING marker node/${v}/x64.complete" >&2; fails=$((fails+1)); }
@@ -59,7 +59,7 @@ for v in 22.23.0 24.17.0; do
 done
 
 # Go toolcache (matches setup-go): each baked version runs and has a .complete marker.
-for v in 1.25.11 1.26.4; do
+for v in 1.25.12 1.26.5; do
   go_bin="${RUNNER_TOOL_CACHE}/go/${v}/x64/bin/go"
   [ -x "$go_bin" ] || { echo "MISSING go toolcache $v ($go_bin)" >&2; fails=$((fails+1)); }
   [ -f "${RUNNER_TOOL_CACHE}/go/${v}/x64.complete" ] || { echo "MISSING marker go/${v}/x64.complete" >&2; fails=$((fails+1)); }
@@ -67,7 +67,7 @@ for v in 1.25.11 1.26.4; do
 done
 
 # Minimal Go build — validates the toolchain is runnable (using the newest version).
-GOTOOLCACHE_GO="${RUNNER_TOOL_CACHE}/go/1.26.4/x64/bin/go"
+GOTOOLCACHE_GO="${RUNNER_TOOL_CACHE}/go/1.26.5/x64/bin/go"
 mkdir -p /tmp/gohello
 printf 'package main\nimport "fmt"\nfunc main(){fmt.Println("ok")}\n' > /tmp/gohello/main.go
 ( cd /tmp/gohello \
@@ -77,7 +77,7 @@ echo "ok: go build hello"
 rm -rf /tmp/gohello /tmp/gocache /tmp/gopath
 
 # Ruby toolcache (matches ruby/setup-ruby): each baked version runs and has a .complete marker.
-for v in 3.2.11 3.3.11 3.4.9 4.0.5; do
+for v in 3.2.11 3.3.11 3.4.10 4.0.6; do
   ruby_bin="${RUNNER_TOOL_CACHE}/Ruby/${v}/x64/bin/ruby"
   [ -x "$ruby_bin" ] || { echo "MISSING ruby toolcache $v ($ruby_bin)" >&2; fails=$((fails+1)); }
   [ -f "${RUNNER_TOOL_CACHE}/Ruby/${v}/x64.complete" ] || { echo "MISSING marker Ruby/${v}/x64.complete" >&2; fails=$((fails+1)); }
@@ -95,10 +95,10 @@ done
 # Default Go on PATH (parity with ubuntu-latest): the newest baked version is the system `go`, so
 # tools that assume a system Go (e.g. pre-commit golang hooks) do not try to download a toolchain.
 command -v go >/dev/null || { echo "MISSING: go not on default PATH" >&2; fails=$((fails+1)); }
-go version | grep -q 'go1.26.4 ' || { echo "default go != 1.26.4: $(go version)" >&2; fails=$((fails+1)); }
+go version | grep -q 'go1.26.5 ' || { echo "default go != 1.26.5: $(go version)" >&2; fails=$((fails+1)); }
 echo "ok: default go on PATH $(go version)"
 
-rustc --version | grep -q '1.96.0' || { echo "rustc != 1.96.0: $(rustc --version)" >&2; fails=$((fails+1)); }
+rustc --version | grep -q '1.97.1' || { echo "rustc != 1.97.1: $(rustc --version)" >&2; fails=$((fails+1)); }
 cargo --version >/dev/null
 echo "ok: rust $(rustc --version), $(cargo --version)"
 
