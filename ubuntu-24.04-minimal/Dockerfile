@@ -4,9 +4,9 @@
 # Base pinned by digest; bumped on weekly rebuild.
 FROM ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
 
-ARG RUNNER_VERSION=2.335.1
+ARG RUNNER_VERSION=2.336.0
 # SHA256 of the linux-x64 runner tarball (from release notes). Verify on bump. x64-specific.
-ARG RUNNER_SHA256=4ef2f25285f0ae4477f1fe1e346db76d2f3ebf03824e2ddd1973a2819bf6c8cf
+ARG RUNNER_SHA256=04cf0be1aff4c3ec3554466c39124ca250e3effd8873bb7e8d68535aa9505d5d
 ARG TARGETARCH=amd64
 
 ENV DEBIAN_FRONTEND=noninteractive \

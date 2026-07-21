@@ -4,9 +4,9 @@
 # Base pinned by digest; bump on weekly rebuild via `docker buildx imagetools inspect`.
 FROM ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
 
-ARG RUNNER_VERSION=2.335.1
+ARG RUNNER_VERSION=2.336.0
 # SHA256 of the linux-x64 runner tarball (from release notes); recompute on version bump. x64-only.
-ARG RUNNER_SHA256=4ef2f25285f0ae4477f1fe1e346db76d2f3ebf03824e2ddd1973a2819bf6c8cf
+ARG RUNNER_SHA256=04cf0be1aff4c3ec3554466c39124ca250e3effd8873bb7e8d68535aa9505d5d
 ARG NODE_MAJOR=22
 # Fresh npm: npm's bundled deps from NodeSource pull in CVEs.
 ARG NPM_VERSION=11.18.0
@@ -87,7 +87,7 @@ ARG CMAKE4_SHA256=927b2368a946c37269c3a66225ab00544e756459cdd0b5d0da438694fb9ff8
 ARG GITLFS_VERSION=3.7.1
 ARG GITLFS_SHA256=1c0b6ee5200ca708c5cebebb18fdeb0e1c98f1af5c1a9cba205a4c0ab5a5ec08
 # pipx pinned via pip (Ubuntu's apt pipx lags behind ubuntu-latest).
-ARG PIPX_VERSION=1.16.0
+ARG PIPX_VERSION=1.16.1
 
 # zstd built from source + SHA256 (apt zstd lags; upstream ships no prebuilt linux binary).
 ARG ZSTD_VERSION=1.5.7
@@ -100,8 +100,8 @@ ARG HELM_VERSION=3.21.3
 ARG HELM_SHA256=15e041a93a590dce8100f39385cd98c84a765c9e36aeeb9e2dc6ff9e4769e2e0
 
 # AWS CLI v2 pinned installer + SHA256. Azure CLI and Google Cloud CLI come from vendor apt repos.
-ARG AWSCLI_VERSION=2.36.1
-ARG AWSCLI_SHA256=6b36b85980ab783db7ba0ff24ebb85924682fa6da1db7ca3c2fa6f27083c0f52
+ARG AWSCLI_VERSION=2.36.2
+ARG AWSCLI_SHA256=88045926e48315681b73ec1d4e430ae6917b0eaffc6368d34bcc07bf9fe9fcb9
 # AWS Session Manager plugin (.deb from AWS S3) — pinned version + SHA256 of the deb.
 ARG SSM_PLUGIN_VERSION=1.2.835.0
 ARG SSM_PLUGIN_SHA256=7c6dcad12518571cc7959a713e6a8ae1bdf6ed66fd9bee37dc189e39ca58ae03
@@ -167,8 +167,8 @@ ARG JULIA_VERSION=1.12.6
 ARG JULIA_SHA256=bbabf3bef19421a9dbd24a767d807606ab85e444323b5a1c73ffe293fa3d079a
 ARG KOTLIN_VERSION=2.4.10
 ARG KOTLIN_SHA256=473dd66c7a3ef4b182065b3da670466c1bf2773a9dbb0ed8b33a39fe9d4f876d
-ARG POWERSHELL_VERSION=7.6.3
-ARG POWERSHELL_SHA256=856d0765d2332377f9d7a4aea76efdfde4de51446e7738dde2dfda41dba9e2a7
+ARG POWERSHELL_VERSION=7.6.4
+ARG POWERSHELL_SHA256=4471b5a36bfe86ec7af8525d36bb1cacba0128e7aac22d05cc064bc00e604721
 ARG GHCUP_VERSION=0.2.6.2
 ARG GHCUP_SHA256=9ed5da5449b48043a0d17e767c05d2ef585e25a639bb934329496c6d2fad9cf8
 # ghc/cabal/stack are installed through ghcup, so their versions are bounded by ghcup's
@@ -202,7 +202,7 @@ ARG ANDROID_CMAKE2_VERSION=4.1.2
 
 # Environment managers + AWS SAM. Homebrew/vcpkg are pinned by git tag; Miniconda/SAM by SHA256.
 # MINICONDA_VERSION is bumped manually (no Renovate datasource for its pyXXX_NN.N.N-N installer name).
-ARG HOMEBREW_VERSION=6.0.11
+ARG HOMEBREW_VERSION=6.0.12
 ARG VCPKG_VERSION=2026.06.24
 ARG MINICONDA_VERSION=py313_26.3.2-2
 ARG MINICONDA_SHA256=2284bafb7863a23411b19874d216e237964d4b32dd9beb6807fa8b2d84570961
