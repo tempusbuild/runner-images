@@ -87,7 +87,7 @@ ARG CMAKE4_SHA256=927b2368a946c37269c3a66225ab00544e756459cdd0b5d0da438694fb9ff8
 ARG GITLFS_VERSION=3.7.1
 ARG GITLFS_SHA256=1c0b6ee5200ca708c5cebebb18fdeb0e1c98f1af5c1a9cba205a4c0ab5a5ec08
 # pipx pinned via pip (Ubuntu's apt pipx lags behind ubuntu-latest).
-ARG PIPX_VERSION=1.16.1
+ARG PIPX_VERSION=1.16.2
 
 # zstd built from source + SHA256 (apt zstd lags; upstream ships no prebuilt linux binary).
 ARG ZSTD_VERSION=1.5.7
@@ -100,8 +100,8 @@ ARG HELM_VERSION=3.21.3
 ARG HELM_SHA256=15e041a93a590dce8100f39385cd98c84a765c9e36aeeb9e2dc6ff9e4769e2e0
 
 # AWS CLI v2 pinned installer + SHA256. Azure CLI and Google Cloud CLI come from vendor apt repos.
-ARG AWSCLI_VERSION=2.36.2
-ARG AWSCLI_SHA256=88045926e48315681b73ec1d4e430ae6917b0eaffc6368d34bcc07bf9fe9fcb9
+ARG AWSCLI_VERSION=2.36.5
+ARG AWSCLI_SHA256=8e6c725ed2804bdbdd8d5d730998c19b3b09be06c2c31432673b5af12d2dff79
 # AWS Session Manager plugin (.deb from AWS S3) — pinned version + SHA256 of the deb.
 ARG SSM_PLUGIN_VERSION=1.2.835.0
 ARG SSM_PLUGIN_SHA256=7c6dcad12518571cc7959a713e6a8ae1bdf6ed66fd9bee37dc189e39ca58ae03
@@ -153,8 +153,8 @@ ARG PULUMI_VERSION=3.253.0
 ARG PULUMI_SHA256=33161e521280e6c77395a46344dba5ff9c118a90df254801e662087143b4d1ac
 # OpenTofu (MPL-2.0, OSS) — Terraform-compatible IaC; ubuntu-latest dropped Terraform (BSL), so this
 # is a deliberate OSS extra beyond strict parity.
-ARG OPENTOFU_VERSION=1.12.4
-ARG OPENTOFU_SHA256=f5d2ae8a0efcddd3722546b3e0f2f2f0648ce5e5a3e411176041adcb7dccc1e8
+ARG OPENTOFU_VERSION=1.12.5
+ARG OPENTOFU_SHA256=dade9650e6b74fc7a8b986bd8717497d32f9e09cf82e479afef4977fa3085536
 ARG NVM_VERSION=0.40.6
 ARG N_VERSION=10.2.0
 ARG COMPOSER_VERSION=2.10.2
