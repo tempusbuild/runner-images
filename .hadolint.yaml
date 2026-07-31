@@ -1,0 +1,5 @@
+# The RUN blocks run under bash (SHELL directive), but hadolint v2.15's shellcheck lints them
+# as POSIX sh — false-flagging `declare -A` arrays and `${var/a/b}` as "undefined in POSIX sh".
+ignored:
+  - SC3054
+  - SC3060

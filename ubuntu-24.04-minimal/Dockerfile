@@ -50,6 +50,6 @@ LABEL org.opencontainers.image.title="runner-ubuntu-24.04-minimal" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.base.name="docker.io/library/ubuntu:24.04"
 
-USER runner
+USER 1001
 
 CMD ["/home/runner/run.sh"]

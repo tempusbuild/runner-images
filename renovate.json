@@ -183,6 +183,17 @@
       "versioningTemplate": "docker"
     },
     {
+      "description": "Pinned hadolint image in the .pre-commit-config docker_image hook.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.pre-commit-config\\.yaml$/"],
+      "matchStrings": [
+        "ghcr\\.io/hadolint/hadolint:(?<currentValue>v[\\d.]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "depNameTemplate": "ghcr.io/hadolint/hadolint",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
       "description": "ARG YQ_VERSION → mikefarah/yq. Does NOT bump YQ_SHA256 — recompute on bump.",
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)Dockerfile$/"],

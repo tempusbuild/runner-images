@@ -800,7 +800,7 @@ LABEL org.opencontainers.image.title="runner-ubuntu-24.04" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.base.name="docker.io/library/ubuntu:24.04"
 
-USER runner
+USER 1001
 
 # ARC sets the command itself; CMD is just a default for manual runs.
 CMD ["/home/runner/run.sh"]
