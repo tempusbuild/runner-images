@@ -84,6 +84,11 @@
       "description": "PHPUnit stays on the 8.x line (parity with ubuntu-latest).",
       "matchDepNames": ["sebastianbergmann/phpunit"],
       "allowedVersions": "<9"
+    },
+    {
+      "description": "Lerna stays on the 9.x line (parity with ubuntu-latest; v10 is a breaking major).",
+      "matchDepNames": ["lerna"],
+      "allowedVersions": "<10"
     }
   ],
   "customManagers": [

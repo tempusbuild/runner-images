@@ -51,7 +51,7 @@ for v in 3.10.20 3.11.15; do
 done
 
 # Node toolcache (matches setup-node): each baked version runs and has a .complete marker.
-for v in 22.23.1 24.18.0; do
+for v in 22.23.2 24.18.1; do
   node_bin="${RUNNER_TOOL_CACHE}/node/${v}/x64/bin/node"
   [ -x "$node_bin" ] || { echo "MISSING node toolcache $v ($node_bin)" >&2; fails=$((fails+1)); }
   [ -f "${RUNNER_TOOL_CACHE}/node/${v}/x64.complete" ] || { echo "MISSING marker node/${v}/x64.complete" >&2; fails=$((fails+1)); }
@@ -77,7 +77,7 @@ echo "ok: go build hello"
 rm -rf /tmp/gohello /tmp/gocache /tmp/gopath
 
 # Ruby toolcache (matches ruby/setup-ruby): each baked version runs and has a .complete marker.
-for v in 3.2.11 3.3.11 3.4.10 4.0.6; do
+for v in 3.2.11 3.3.12 3.4.10 4.0.6; do
   ruby_bin="${RUNNER_TOOL_CACHE}/Ruby/${v}/x64/bin/ruby"
   [ -x "$ruby_bin" ] || { echo "MISSING ruby toolcache $v ($ruby_bin)" >&2; fails=$((fails+1)); }
   [ -f "${RUNNER_TOOL_CACHE}/Ruby/${v}/x64.complete" ] || { echo "MISSING marker Ruby/${v}/x64.complete" >&2; fails=$((fails+1)); }

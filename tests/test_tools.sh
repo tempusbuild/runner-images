@@ -16,10 +16,10 @@ done
 
 # Pinned-binary versions must match the Dockerfile pins (parity with ubuntu-latest).
 cmake --version | grep -q '3.31.12' || { echo "cmake != 3.31.12: $(cmake --version | head -1)" >&2; fails=$((fails+1)); }
-cmake4 --version | grep -q '4.3.3' || { echo "cmake4 != 4.3.3: $(cmake4 --version | head -1)" >&2; fails=$((fails+1)); }
+cmake4 --version | grep -q '4.4.1' || { echo "cmake4 != 4.4.1: $(cmake4 --version | head -1)" >&2; fails=$((fails+1)); }
 git-lfs version | grep -q '3.7.1' || { echo "git-lfs != 3.7.1: $(git-lfs version)" >&2; fails=$((fails+1)); }
-pipx --version | grep -q '1.16.2' || { echo "pipx != 1.16.2: $(pipx --version)" >&2; fails=$((fails+1)); }
-kubectl version --client 2>/dev/null | grep -q 'v1.36.2' || { echo "kubectl != 1.36.2: $(kubectl version --client 2>/dev/null | head -1)" >&2; fails=$((fails+1)); }
+pipx --version | grep -q '1.16.3' || { echo "pipx != 1.16.3: $(pipx --version)" >&2; fails=$((fails+1)); }
+kubectl version --client 2>/dev/null | grep -q 'v1.36.3' || { echo "kubectl != 1.36.3: $(kubectl version --client 2>/dev/null | head -1)" >&2; fails=$((fails+1)); }
 helm version --short 2>/dev/null | grep -q 'v3.21.3' || { echo "helm != 3.21.3: $(helm version --short 2>/dev/null)" >&2; fails=$((fails+1)); }
 echo "ok: cmake/git-lfs/pipx/kubectl/helm at pinned versions"
 

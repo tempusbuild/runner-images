@@ -21,7 +21,7 @@ repos:
       - id: gitleaks
 
   - repo: https://github.com/hadolint/hadolint
-    rev: v2.14.0
+    rev: v2.15.1
     hooks:
       - id: hadolint-docker
 
@@ -60,7 +60,7 @@ repos:
           - mdformat-tables==1.0.0
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.23.1
+    rev: v0.23.2
     hooks:
       - id: markdownlint-cli2
         args: [--fix]
