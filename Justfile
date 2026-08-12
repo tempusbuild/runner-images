@@ -2,7 +2,7 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 image := "tempusbuild/runner-ubuntu-24.04:dev"
 image_minimal := "tempusbuild/runner-ubuntu-24.04-minimal:dev"
-trivy_flags := "--severity HIGH,CRITICAL --ignore-unfixed --ignorefile .trivyignore.yaml --skip-version-check"
+trivy_flags := "--severity HIGH,CRITICAL --ignore-unfixed --skip-version-check --ignorefile .trivyignore.yaml"
 
 [private]
 default:
