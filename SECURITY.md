@@ -17,7 +17,7 @@ CVE gate. The SBOM predicate is too large for a transparency-log entry, so it is
 Sigstore TSA (RFC3161) instead of logged to Rekor; the image signature and provenance are in Rekor.
 
 Requires [cosign](https://github.com/sigstore/cosign) (steps 1, 3) and the `gh` CLI (step 2).
-Everywhere below, work against the immutable `@sha256:` digest rather than a floating tag.
+Everywhere below, work against the immutable `@sha256` digest rather than a floating tag.
 
 ```sh
 IMAGE=ghcr.io/tempusbuild/runner-ubuntu-24.04
