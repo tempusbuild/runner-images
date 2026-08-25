@@ -251,15 +251,13 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /tmp/packages.txt
 
 # Newer Git from the maintainers' PPA (Ubuntu ships an older point release) — version parity.
-# Key fetched by fingerprint into a keyring (retried) instead of `add-apt-repository`, whose
-# single-shot Launchpad key lookup flakes (GPGKeyTemporarilyNotFoundError) and breaks the build.
+# add-apt-repository's single-shot Launchpad key fetch intermittently flakes
+# (GPGKeyTemporarilyNotFoundError), so retry until it succeeds — a transient hiccup must not break the
+# build. (A keyserver curl+dearmor was avoided: its ?op=get&search=0x… URL trips Dockle CIS-DI-0010.)
 # hadolint ignore=DL3008
-RUN install -m 0755 -d /etc/apt/keyrings \
-    && curl -fsSL --retry 5 --retry-all-errors "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF911AB184317630C59970973E363C90F8F1B6217" \
-       | gpg --dearmor -o /etc/apt/keyrings/git-core-ppa.gpg \
-    && chmod a+r /etc/apt/keyrings/git-core-ppa.gpg \
-    && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/git-core-ppa.gpg] https://ppa.launchpadcontent.net/git-core/ppa/ubuntu noble main" \
-       > /etc/apt/sources.list.d/git-core.list \
+RUN i=0; until add-apt-repository -y ppa:git-core/ppa; do \
+      i=$((i+1)); [ "$i" -ge 5 ] && exit 1; echo "add-apt-repository retry ${i}"; sleep 5; \
+    done \
     && apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
