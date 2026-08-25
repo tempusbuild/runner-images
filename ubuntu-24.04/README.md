@@ -97,6 +97,9 @@ Included:
   toolcache + on `PATH`), the Amazon ECR credential helper (`docker-credential-ecr-login`) and the
   AWS Session Manager plugin (`session-manager-plugin`); plus OpenTofu (`tofu`, MPL-2.0) — the OSS
   Terraform-compatible IaC tool (ubuntu-latest dropped Terraform under its BSL license);
+- the runner **action archive cache** (`ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE=/opt/actionarchivecache`,
+  parity with ubuntu-latest's `install-actions-cache.sh`): prebundled tarballs of common actions so
+  the runner resolves them offline instead of downloading on every run;
 - environment managers + AWS SAM: Homebrew (`brew`), Miniconda (reachable via `$CONDA`), vcpkg
   (`$VCPKG_INSTALLATION_ROOT`), and `sam`;
 - JVM build tools: Maven, Gradle, Ant; global npm CLIs `lerna`, `typescript` (`tsc`), `webpack` +
@@ -137,6 +140,10 @@ Deliberate exceptions:
 - **`systemd-coredump` is NOT installed**: the runner executes as a container under ARC (no `systemd`
   as PID 1), so it would be inert and only adds `systemd` surface. Everything else in the documented
   ubuntu-latest apt set is present.
+- **GitHub Agentic Workflows plumbing is NOT included** (`copilot-cli`, the `awf` agentic-workflow
+  firewall): these are GitHub-product-specific agents for the `gh-aw` preview — not general-purpose
+  developer tooling, and absent from the ubuntu-latest software report — so they are out of scope for
+  a runner executing standard CI.
 - **A curated superset beyond ubuntu-latest** (batteries-included): a broad set of native-build dev
   headers and tools (imaging, crypto, compression, DB/ODBC, systemd, kafka, BLAS/HDF5 — see the
   toolset list above — plus `protobuf-compiler`, `meson` and `ccache`) is preinstalled so common

@@ -7,6 +7,10 @@ FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a
 ARG RUNNER_VERSION=2.336.0
 # SHA256 of the linux-x64 runner tarball (from release notes); recompute on version bump. x64-only.
 ARG RUNNER_SHA256=04cf0be1aff4c3ec3554466c39124ca250e3effd8873bb7e8d68535aa9505d5d
+# Action archive cache (parity with ubuntu-latest install-actions-cache.sh): prebundled tarballs of
+# common actions the runner resolves offline. Pinned tarball + SHA256 (recompute on bump). ~273 MB.
+ARG ACTION_ARCHIVE_CACHE_VERSION=1.0.53
+ARG ACTION_ARCHIVE_CACHE_SHA256=af0f07f79b208f6ab409f99207f21bfe085db006ada0f4ca41c4aa66bbafb127
 ARG NODE_MAJOR=22
 # Fresh npm: npm's bundled deps from NodeSource pull in CVEs.
 ARG NPM_VERSION=11.19.0
@@ -212,6 +216,7 @@ ARG SAM_SHA256=e95678af994e5c1f12b59314de7bdee644be7246df1e85c4a4f2b48448d8569f
 ENV DEBIAN_FRONTEND=noninteractive \
     RUNNER_MANUALLY_TRAP_SIG=1 \
     ACTIONS_RUNNER_PRINT_LOG_TO_STDOUT=1 \
+    ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE=/opt/actionarchivecache \
     ImageOS=ubuntu24 \
     ImageVersion=24.04 \
     RUNNER_TOOL_CACHE=/opt/hostedtoolcache \
@@ -246,8 +251,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /tmp/packages.txt
 
 # Newer Git from the maintainers' PPA (Ubuntu ships an older point release) — version parity.
+# Key fetched by fingerprint into a keyring (retried) instead of `add-apt-repository`, whose
+# single-shot Launchpad key lookup flakes (GPGKeyTemporarilyNotFoundError) and breaks the build.
 # hadolint ignore=DL3008
-RUN add-apt-repository -y ppa:git-core/ppa \
+RUN install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL --retry 5 --retry-all-errors "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF911AB184317630C59970973E363C90F8F1B6217" \
+       | gpg --dearmor -o /etc/apt/keyrings/git-core-ppa.gpg \
+    && chmod a+r /etc/apt/keyrings/git-core-ppa.gpg \
+    && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/git-core-ppa.gpg] https://ppa.launchpadcontent.net/git-core/ppa/ubuntu noble main" \
+       > /etc/apt/sources.list.d/git-core.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
@@ -602,6 +614,15 @@ RUN RUNNER_ARCH="${TARGETARCH/amd64/x64}" \
                 "${d}bin/npm" "${d}bin/npx" "${d}bin/corepack"; \
        done \
     && chown -R runner:runner /home/runner
+
+# Action archive cache (matches ubuntu-latest install-actions-cache.sh): prebundled action tarballs
+# the runner resolves offline via $ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE. Pinned tarball + SHA256.
+RUN mkdir -p /opt/actionarchivecache \
+    && curl -fsSL "https://github.com/actions/action-versions/releases/download/v${ACTION_ARCHIVE_CACHE_VERSION}/action-versions.tar.gz" -o /tmp/action-versions.tar.gz \
+    && echo "${ACTION_ARCHIVE_CACHE_SHA256}  /tmp/action-versions.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/action-versions.tar.gz -C /opt/actionarchivecache \
+    && rm -f /tmp/action-versions.tar.gz \
+    && chown -R runner:runner /opt/actionarchivecache
 
 # Prebake the Python toolcache: tarball for the exact version from the manifest, SHA256 check, then
 # the bundled setup.sh (installs into $AGENT_TOOLSDIRECTORY/Python/<v>/x64 + a .complete marker for

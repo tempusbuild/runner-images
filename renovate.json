@@ -105,6 +105,18 @@
       "versioningTemplate": "semver"
     },
     {
+      "description": "ARG ACTION_ARCHIVE_CACHE_VERSION → actions/action-versions releases (action archive cache tarball). Does NOT bump ACTION_ARCHIVE_CACHE_SHA256 — recompute manually on bump.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG ACTION_ARCHIVE_CACHE_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "actions/action-versions",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
       "description": "ARG NPM_VERSION in ubuntu-24.04/Dockerfile → the npm package (npm datasource).",
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)Dockerfile$/"],

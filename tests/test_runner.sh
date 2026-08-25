@@ -24,4 +24,12 @@ for v in node20 node24; do
   [ -e "/home/runner/externals/$v/bin/npm" ] && { echo "UNEXPECTED: bundled npm in $v not stripped" >&2; exit 1; }
 done
 
+# Action archive cache (parity with ubuntu-latest install-actions-cache.sh): env var + prebaked bundles.
+[ "${ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE:-}" = /opt/actionarchivecache ] \
+  || { echo "ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE unset/wrong: ${ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE:-}" >&2; exit 1; }
+shopt -s nullglob
+archive_bundles=(/opt/actionarchivecache/actions_cache/*.tar.gz)
+[ "${#archive_bundles[@]}" -gt 0 ] || { echo "action archive cache empty at /opt/actionarchivecache" >&2; exit 1; }
+echo "ok: action archive cache (${#archive_bundles[@]} bundles)"
+
 echo "OK: runner-agent present, node20/node24 runtimes work, externals npm removed"
