@@ -20,10 +20,14 @@ repos:
     hooks:
       - id: gitleaks
 
-  - repo: https://github.com/hadolint/hadolint
-    rev: v2.14.0
+  - repo: local
     hooks:
-      - id: hadolint-docker
+      # The upstream hadolint hook pulls :latest — non-reproducible; a new release broke CI.
+      - id: hadolint
+        name: Lint Dockerfiles
+        language: docker_image
+        types: [dockerfile]
+        entry: ghcr.io/hadolint/hadolint:v2.15.1@sha256:32dac94127fd60b7b7e3fbfc65e1383b9b5e25c9bfd7b8536de7a539fe68a12d hadolint
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.11.0.1
@@ -42,7 +46,7 @@ repos:
       - id: actionlint
 
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.28.0
+    rev: v1.29.0
     hooks:
       - id: zizmor
         args: [--no-progress, --persona=auditor]
@@ -60,7 +64,7 @@ repos:
           - mdformat-tables==1.0.0
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.23.1
+    rev: v0.23.2
     hooks:
       - id: markdownlint-cli2
         args: [--fix]

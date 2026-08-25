@@ -2,7 +2,7 @@
 # Minimal Ubuntu 24.04 runner image: just runner-agent + base (no Node/Docker CLI).
 # For workflows that need no toolchain — faster to pull, smaller surface.
 # Base pinned by digest; bumped on weekly rebuild.
-FROM ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
+FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
 
 ARG RUNNER_VERSION=2.336.0
 # SHA256 of the linux-x64 runner tarball (from release notes). Verify on bump. x64-specific.
@@ -50,6 +50,6 @@ LABEL org.opencontainers.image.title="runner-ubuntu-24.04-minimal" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.base.name="docker.io/library/ubuntu:24.04"
 
-USER runner
+USER 1001
 
 CMD ["/home/runner/run.sh"]

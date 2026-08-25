@@ -16,11 +16,11 @@ done
 
 # Pinned-binary versions must match the Dockerfile pins (parity with ubuntu-latest).
 cmake --version | grep -q '3.31.12' || { echo "cmake != 3.31.12: $(cmake --version | head -1)" >&2; fails=$((fails+1)); }
-cmake4 --version | grep -q '4.3.3' || { echo "cmake4 != 4.3.3: $(cmake4 --version | head -1)" >&2; fails=$((fails+1)); }
+cmake4 --version | grep -q '4.4.2' || { echo "cmake4 != 4.4.2: $(cmake4 --version | head -1)" >&2; fails=$((fails+1)); }
 git-lfs version | grep -q '3.7.1' || { echo "git-lfs != 3.7.1: $(git-lfs version)" >&2; fails=$((fails+1)); }
-pipx --version | grep -q '1.16.2' || { echo "pipx != 1.16.2: $(pipx --version)" >&2; fails=$((fails+1)); }
-kubectl version --client 2>/dev/null | grep -q 'v1.36.2' || { echo "kubectl != 1.36.2: $(kubectl version --client 2>/dev/null | head -1)" >&2; fails=$((fails+1)); }
-helm version --short 2>/dev/null | grep -q 'v3.21.3' || { echo "helm != 3.21.3: $(helm version --short 2>/dev/null)" >&2; fails=$((fails+1)); }
+pipx --version | grep -q '1.16.7' || { echo "pipx != 1.16.7: $(pipx --version)" >&2; fails=$((fails+1)); }
+kubectl version --client 2>/dev/null | grep -q 'v1.36.4' || { echo "kubectl != 1.36.4: $(kubectl version --client 2>/dev/null | head -1)" >&2; fails=$((fails+1)); }
+helm version --short 2>/dev/null | grep -q 'v3.21.4' || { echo "helm != 3.21.4: $(helm version --short 2>/dev/null)" >&2; fails=$((fails+1)); }
 echo "ok: cmake/git-lfs/pipx/kubectl/helm at pinned versions"
 
 for cc in gcc-12 gcc-13 gcc-14 g++-12 g++-13 g++-14 clang-16 clang-17 clang-18 \
@@ -169,6 +169,15 @@ for tool in dig nc telnet ping netstat ifconfig getfacl ftp wish; do
 done
 [ -f /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf ] || { echo "MISSING: noto color emoji font" >&2; fails=$((fails+1)); }
 echo "ok: xvfb + network diagnostics + acl/ftp/tk/emoji-font"
+
+# Action archive cache (full image only, parity with ubuntu-latest install-actions-cache.sh):
+# env var set + prebaked action bundles so the runner resolves the default actions offline.
+[ "${ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE:-}" = /opt/actionarchivecache ] \
+  || { echo "ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE unset/wrong: ${ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE:-}" >&2; fails=$((fails+1)); }
+shopt -s nullglob
+archive_bundles=(/opt/actionarchivecache/actions_cache/*.tar.gz)
+[ "${#archive_bundles[@]}" -gt 0 ] || { echo "action archive cache empty at /opt/actionarchivecache" >&2; fails=$((fails+1)); }
+echo "ok: action archive cache (${#archive_bundles[@]} bundles)"
 
 [ "$fails" -eq 0 ] || { echo "SMOKE FAILURES (tools): $fails" >&2; exit 1; }
 echo "OK: base tools present"

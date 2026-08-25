@@ -84,6 +84,11 @@
       "description": "PHPUnit stays on the 8.x line (parity with ubuntu-latest).",
       "matchDepNames": ["sebastianbergmann/phpunit"],
       "allowedVersions": "<9"
+    },
+    {
+      "description": "Lerna stays on the 10.x line (parity with ubuntu-latest; v11 is a breaking major).",
+      "matchDepNames": ["lerna"],
+      "allowedVersions": "<11"
     }
   ],
   "customManagers": [
@@ -95,6 +100,18 @@
         "ARG RUNNER_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
       ],
       "depNameTemplate": "actions/runner",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG ACTION_ARCHIVE_CACHE_VERSION → actions/action-versions releases (action archive cache tarball). Does NOT bump ACTION_ARCHIVE_CACHE_SHA256 — recompute manually on bump.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": [
+        "ARG ACTION_ARCHIVE_CACHE_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "actions/action-versions",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.+)$",
       "versioningTemplate": "semver"
@@ -174,6 +191,17 @@
       "matchStrings": [
         "(?<depName>goodwithtech/dockle|wagoodman/dive):(?<currentValue>v[\\d.]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
       ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "description": "Pinned hadolint image in the .pre-commit-config docker_image hook.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.pre-commit-config\\.yaml$/"],
+      "matchStrings": [
+        "ghcr\\.io/hadolint/hadolint:(?<currentValue>v[\\d.]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "depNameTemplate": "ghcr.io/hadolint/hadolint",
       "datasourceTemplate": "docker",
       "versioningTemplate": "docker"
     },

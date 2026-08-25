@@ -6,16 +6,16 @@ Full runner image for ARC `gha-runner-scale-set`, label `tempus-ubuntu-24.04-4co
 
 | Component                     | Version                                                                                                                                                                                           | Source (verify before bumping)                                                        |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Base                          | Ubuntu 24.04 (noble), pinned by digest `sha256:4fbb8e6a…`                                                                                                                                         | hub.docker.com/\_/ubuntu — bump digest on weekly rebuild                              |
+| Base                          | Ubuntu 24.04 (noble), pinned by digest `sha256:33ceb719…`                                                                                                                                         | hub.docker.com/\_/ubuntu — bump digest on weekly rebuild                              |
 | Actions runner                | `2.336.0` (ARG `RUNNER_VERSION`)                                                                                                                                                                  | github.com/actions/runner/releases                                                    |
 | Node.js                       | LTS, major `22` (ARG `NODE_MAJOR`)                                                                                                                                                                | nodejs.org/en/about/previous-releases                                                 |
 | Python (system)               | 3.12 (system on 24.04) + `pip`, `venv`, dev headers (`python3-dev`)                                                                                                                               | packages.ubuntu.com                                                                   |
-| Python (toolcache, prebake)   | `3.10.20`, `3.11.15`, `3.12.13`, `3.13.14`, `3.14.6` in `/opt/hostedtoolcache/Python/<v>/x64` (ARG `PYTHON_31x`)                                                                                  | actions/python-versions `versions-manifest.json` — same builds `setup-python` fetches |
-| Go (toolcache, prebake)       | `1.25.12`, `1.26.5` — supported minors (1.25 / 1.26) in `/opt/hostedtoolcache/go/<v>/x64` (ARG `GO_125`/`GO_126`)                                                                                 | go.dev/dl — SHA256 from `?mode=json&include=all`; `setup-go` layout (cache hit)       |
-| Rust (rustup)                 | toolchain `1.97.1` (rustup `1.29.0`), default profile = rustc+cargo+rust-std+rustfmt+clippy; `RUSTUP_HOME=/usr/local/rustup`, `CARGO_HOME=/usr/local/cargo` (ARG `RUST_VERSION`/`RUSTUP_VERSION`) | static.rust-lang.org — pinned `rustup-init` + SHA256                                  |
-| pipx                          | `1.16.2`, pinned via `pip` (ARG `PIPX_VERSION`) — isolated installs of Python CLI tools                                                                                                           | PyPI                                                                                  |
-| CMake / Git LFS               | `3.31.12` (+ `4.3.3` as `cmake4`) / `3.7.1` — pinned binaries + SHA256 (ARG `CMAKE_VERSION`/`CMAKE4_VERSION`/`GITLFS_VERSION`)                                                                    | github.com/Kitware/CMake, github.com/git-lfs/git-lfs releases                         |
-| yq (mikefarah)                | `4.53.3` — pinned binary + SHA256 (ARG `YQ_VERSION`)                                                                                                                                              | github.com/mikefarah/yq releases                                                      |
+| Python (toolcache, prebake)   | `3.10.21`, `3.11.16`, `3.12.14`, `3.13.15`, `3.14.7` in `/opt/hostedtoolcache/Python/<v>/x64` (ARG `PYTHON_31x`)                                                                                  | actions/python-versions `versions-manifest.json` — same builds `setup-python` fetches |
+| Go (toolcache, prebake)       | `1.25.14`, `1.26.7` — supported minors (1.25 / 1.26) in `/opt/hostedtoolcache/go/<v>/x64` (ARG `GO_125`/`GO_126`)                                                                                 | go.dev/dl — SHA256 from `?mode=json&include=all`; `setup-go` layout (cache hit)       |
+| Rust (rustup)                 | toolchain `1.98.0` (rustup `1.29.0`), default profile = rustc+cargo+rust-std+rustfmt+clippy; `RUSTUP_HOME=/usr/local/rustup`, `CARGO_HOME=/usr/local/cargo` (ARG `RUST_VERSION`/`RUSTUP_VERSION`) | static.rust-lang.org — pinned `rustup-init` + SHA256                                  |
+| pipx                          | `1.16.7`, pinned via `pip` (ARG `PIPX_VERSION`) — isolated installs of Python CLI tools                                                                                                           | PyPI                                                                                  |
+| CMake / Git LFS               | `3.31.12` (+ `4.4.2` as `cmake4`) / `3.7.1` — pinned binaries + SHA256 (ARG `CMAKE_VERSION`/`CMAKE4_VERSION`/`GITLFS_VERSION`)                                                                    | github.com/Kitware/CMake, github.com/git-lfs/git-lfs releases                         |
+| yq (mikefarah)                | `4.53.6` — pinned binary + SHA256 (ARG `YQ_VERSION`)                                                                                                                                              | github.com/mikefarah/yq releases                                                      |
 | GitHub CLI (`gh`)             | from the cli.github.com repo (workflows commonly call `gh`)                                                                                                                                       | cli.github.com                                                                        |
 | Docker CLI + buildx + compose | from the download.docker.com repo                                                                                                                                                                 | docs.docker.com                                                                       |
 | Base tools                    | see `packages.txt` (incl. `zstd` — speeds up `actions/cache`)                                                                                                                                     | —                                                                                     |
@@ -97,6 +97,9 @@ Included:
   toolcache + on `PATH`), the Amazon ECR credential helper (`docker-credential-ecr-login`) and the
   AWS Session Manager plugin (`session-manager-plugin`); plus OpenTofu (`tofu`, MPL-2.0) — the OSS
   Terraform-compatible IaC tool (ubuntu-latest dropped Terraform under its BSL license);
+- the runner **action archive cache** (`ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE=/opt/actionarchivecache`,
+  parity with ubuntu-latest's `install-actions-cache.sh`): prebundled tarballs of common actions so
+  the runner resolves them offline instead of downloading on every run;
 - environment managers + AWS SAM: Homebrew (`brew`), Miniconda (reachable via `$CONDA`), vcpkg
   (`$VCPKG_INSTALLATION_ROOT`), and `sam`;
 - JVM build tools: Maven, Gradle, Ant; global npm CLIs `lerna`, `typescript` (`tsc`), `webpack` +
@@ -137,6 +140,10 @@ Deliberate exceptions:
 - **`systemd-coredump` is NOT installed**: the runner executes as a container under ARC (no `systemd`
   as PID 1), so it would be inert and only adds `systemd` surface. Everything else in the documented
   ubuntu-latest apt set is present.
+- **GitHub Agentic Workflows plumbing is NOT included** (`copilot-cli`, the `awf` agentic-workflow
+  firewall): these are GitHub-product-specific agents for the `gh-aw` preview — not general-purpose
+  developer tooling, and absent from the ubuntu-latest software report — so they are out of scope for
+  a runner executing standard CI.
 - **A curated superset beyond ubuntu-latest** (batteries-included): a broad set of native-build dev
   headers and tools (imaging, crypto, compression, DB/ODBC, systemd, kafka, BLAS/HDF5 — see the
   toolset list above — plus `protobuf-compiler`, `meson` and `ccache`) is preinstalled so common

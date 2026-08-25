@@ -2,56 +2,60 @@
 # Ubuntu 24.04 runner image for ARC gha-runner-scale-set (label tempus-ubuntu-24.04-4core):
 # runner-agent + base CI toolchain.
 # Base pinned by digest; bump on weekly rebuild via `docker buildx imagetools inspect`.
-FROM ubuntu:24.04@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
+FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
 
 ARG RUNNER_VERSION=2.336.0
 # SHA256 of the linux-x64 runner tarball (from release notes); recompute on version bump. x64-only.
 ARG RUNNER_SHA256=04cf0be1aff4c3ec3554466c39124ca250e3effd8873bb7e8d68535aa9505d5d
+# Action archive cache (parity with ubuntu-latest install-actions-cache.sh): prebundled tarballs of
+# common actions the runner resolves offline. Pinned tarball + SHA256 (recompute on bump). ~273 MB.
+ARG ACTION_ARCHIVE_CACHE_VERSION=1.0.53
+ARG ACTION_ARCHIVE_CACHE_SHA256=af0f07f79b208f6ab409f99207f21bfe085db006ada0f4ca41c4aa66bbafb127
 ARG NODE_MAJOR=22
 # Fresh npm: npm's bundled deps from NodeSource pull in CVEs.
-ARG NPM_VERSION=11.18.0
+ARG NPM_VERSION=11.19.0
 ARG TARGETARCH=amd64
 
 # Python toolcache (matches setup-python: same actions/python-versions builds, offline cache hit).
 # Exact patches and their SHA256 are pinned (the manifest publishes no hashes) — verify on bump.
-ARG PYTHON_310=3.10.20
-ARG PYTHON_311=3.11.15
-ARG PYTHON_312=3.12.13
-ARG PYTHON_313=3.13.14
-ARG PYTHON_314=3.14.6
-ARG PYTHON_310_SHA256=1604488f2d04e0dd2e4437cc918cb4adc25f1e6dd7a7d1ccbc9e79681e2678f1
-ARG PYTHON_311_SHA256=a972aa7e44f1596aa63274a9ac58dbc2349c321f3f78b1c0fc5a60d5d69a6402
-ARG PYTHON_312_SHA256=ce7d511228f095b5ea1ad5568543388870f5964688303f9ddc24ba06c336bfba
-ARG PYTHON_313_SHA256=c54b2ef814e8002782c04e8fec521dda72cad93f3d1a835cb65b49f769b38842
-ARG PYTHON_314_SHA256=29dc7f3887a430fe7a0005fee4732b00be1bbed5bf21aa1e43f8d947eb1b9f61
+ARG PYTHON_310=3.10.21
+ARG PYTHON_311=3.11.16
+ARG PYTHON_312=3.12.14
+ARG PYTHON_313=3.13.15
+ARG PYTHON_314=3.14.7
+ARG PYTHON_310_SHA256=3ae6d012a8c2cb41bf7a2957a99f1d6d329a264a727053e71edb76b1cfda6f52
+ARG PYTHON_311_SHA256=07b61e35f30861939ff95314297921de8f57cd48f85bb18d777651b3ea45f2ee
+ARG PYTHON_312_SHA256=5a03168292516f6dd6dcf630f4bf5369b108abd7c699a7e1db37f1e622257fff
+ARG PYTHON_313_SHA256=4e544242f8a4ef647a6f511b67f9b00eefc9ef366644e3c40a27a6eff709ae2b
+ARG PYTHON_314_SHA256=76d5ddab6d2dd89a39c06220f6efeda486a48ed481eae97bfc596c74ac3623db
 # 3.10/3.11 bundle an old setuptools with vulnerable vendored copies (CVE-2026-23949/-24049) —
 # upgrade to the fixed version rather than ignoring (3.12+ bundle no setuptools, PEP 632).
-ARG SETUPTOOLS_VERSION=82.0.1
+ARG SETUPTOOLS_VERSION=83.0.0
 
 # Go toolcache (matches setup-go: offline cache hit, no runtime download per run). We bake only
 # supported minors (Go patches only the last 2): patch-current 1.25/1.26. EOL minors (1.22-1.24)
 # are deliberately not baked — EOL Go is unpatched and its stdlib CVEs are unfixable in the image;
 # anyone needing them installs via setup-go from the network. SHA256 from go.dev/dl JSON
 # (files[].sha256 field). Recompute on bump (go.dev/dl/?mode=json&include=all).
-ARG GO_125=1.25.12
-ARG GO_126=1.26.5
-ARG GO_125_SHA256=234828b7a89e0e303d2556310ee549fbcf253d28de937bac3da13d6294262ac1
-ARG GO_126_SHA256=5c2c3b16caefa1d968a94c1daca04a7ca301a496d9b086e17ad77bb81393f053
+ARG GO_125=1.25.14
+ARG GO_126=1.26.7
+ARG GO_125_SHA256=a21ae5633a269bcd7e90cf767e48225633795e99d831742cbf3397064fee7712
+ARG GO_126_SHA256=ffb5f8de10c62550dfddab66b36b57030721e0a44a3218e9e1181d7b59f121ca
 
 # Node.js toolcache (matches setup-node: offline cache hit). Newest patch of each cached major
 # (22, 24); SHA256 from nodejs.org SHASUMS256.txt. NODE_MAJOR above is the system Node (apt).
-ARG NODE_TC_22=22.23.1
-ARG NODE_TC_24=24.18.0
-ARG NODE_TC_22_SHA256=7a8cb04b4a1df4eaf432125324b81b29a088e73570a23259a8de1c65d07fc129
-ARG NODE_TC_24_SHA256=783130984963db7ba9cbd01089eaf2c2efb055c7c1693c943174b967b3050cb8
+ARG NODE_TC_22=22.23.2
+ARG NODE_TC_24=24.19.0
+ARG NODE_TC_22_SHA256=b294a556e639d64338823920e5866c21c02741742d2e1529ee1a225c1ec9252a
+ARG NODE_TC_24_SHA256=f625d97cd707df4ff96254916fbc5ff014f09c09effe5a1e0ca8f6d41a8789d4
 
 # Ruby toolcache (matches ruby/setup-ruby): prebuilt ruby-builder tarballs for ubuntu-24.04.
 ARG RUBY_32=3.2.11
-ARG RUBY_33=3.3.11
+ARG RUBY_33=3.3.12
 ARG RUBY_34=3.4.10
 ARG RUBY_40=4.0.6
 ARG RUBY_32_SHA256=1b89cf6de50def9e15701f369e526c4fbfb79abf1f7576b01eec695291d46299
-ARG RUBY_33_SHA256=b8a4aa67f34b7747674453fa7b67fd3181b47645af0a6a98743743fd6fa938ec
+ARG RUBY_33_SHA256=3fa2d6242e105a65f694fae86e9f68d9617c827fc14d1fcf611035b9ae2cbdb8
 ARG RUBY_34_SHA256=2a16c29b57203754da3fcb0c25d9dd7f7340e858f46f835bef32feef348ebc93
 ARG RUBY_40_SHA256=a65a82adf40df54d9bfcab4c61055f01bccff14a52c5b7c0c2cfecc1e9895fae
 
@@ -71,37 +75,37 @@ ARG PYPY_311_SHA256=16f9f56e82d1f4ec95a324c1a8cacfd78afc7f0656c0a809a18725ef4391
 # Rust via pinned rustup-init (not `curl | sh`): tarball by URL + SHA256 from <url>.sha256.
 # default profile = rustc+cargo+rust-std+rustfmt+clippy. Exact toolchain pin for reproducibility.
 ARG RUSTUP_VERSION=1.29.0
-ARG RUST_VERSION=1.97.1
+ARG RUST_VERSION=1.98.0
 ARG RUSTUP_SHA256=4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10
 
 # yq (mikefarah) pinned binary + SHA256 — parity with ubuntu-latest (jq comes from apt; yq does not).
-ARG YQ_VERSION=4.53.3
-ARG YQ_SHA256=fa52a4e758c63d38299163fbdd1edfb4c4963247918bf9c1c5d31d84789eded4
+ARG YQ_VERSION=4.53.6
+ARG YQ_SHA256=c5f056448f973ae7d39b5401949648a78f2dc1947d6a8eb65be60d5c504b9385
 
 # cmake / git-lfs pinned binaries + SHA256 — version parity with ubuntu-latest (apt ships older).
 # Two cmake majors like ubuntu-latest: 3.31 is the default `cmake`, 4.x is exposed as `cmake4`.
 ARG CMAKE_VERSION=3.31.12
 ARG CMAKE_SHA256=0dc2e9a6860f06bf10bd8fadc03e35d9eeb4df46e33763a7e480e987758f385c
-ARG CMAKE4_VERSION=4.3.3
-ARG CMAKE4_SHA256=927b2368a946c37269c3a66225ab00544e756459cdd0b5d0da438694fb9ff802
+ARG CMAKE4_VERSION=4.4.2
+ARG CMAKE4_SHA256=3ada9a3f5d8a85413579bdd0ea6aa8e8da86efdd6d15c91a1afa517f2021956c
 ARG GITLFS_VERSION=3.7.1
 ARG GITLFS_SHA256=1c0b6ee5200ca708c5cebebb18fdeb0e1c98f1af5c1a9cba205a4c0ab5a5ec08
 # pipx pinned via pip (Ubuntu's apt pipx lags behind ubuntu-latest).
-ARG PIPX_VERSION=1.16.2
+ARG PIPX_VERSION=1.16.7
 
 # zstd built from source + SHA256 (apt zstd lags; upstream ships no prebuilt linux binary).
 ARG ZSTD_VERSION=1.5.7
 ARG ZSTD_SHA256=eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3
 
 # kubectl / Helm pinned binaries + SHA256. Helm stays on 3.x (ubuntu-latest parity), not v4 (major).
-ARG KUBECTL_VERSION=1.36.2
-ARG KUBECTL_SHA256=1e9045ec32bea85da43de85f0065358529ea7c7a152eca78154fba5b58c27d82
-ARG HELM_VERSION=3.21.3
-ARG HELM_SHA256=15e041a93a590dce8100f39385cd98c84a765c9e36aeeb9e2dc6ff9e4769e2e0
+ARG KUBECTL_VERSION=1.36.4
+ARG KUBECTL_SHA256=8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a
+ARG HELM_VERSION=3.21.4
+ARG HELM_SHA256=61f88ab166748cb19604d7884cb100ae9ccb13804ddeb98e08af167eacbb6a14
 
 # AWS CLI v2 pinned installer + SHA256. Azure CLI and Google Cloud CLI come from vendor apt repos.
-ARG AWSCLI_VERSION=2.36.5
-ARG AWSCLI_SHA256=8e6c725ed2804bdbdd8d5d730998c19b3b09be06c2c31432673b5af12d2dff79
+ARG AWSCLI_VERSION=2.36.30
+ARG AWSCLI_SHA256=a0a4f1dd3fe547f7be0569d127b3adb77646e232ef69820aa79edf4f7ea2a5a2
 # AWS Session Manager plugin (.deb from AWS S3) — pinned version + SHA256 of the deb.
 ARG SSM_PLUGIN_VERSION=1.2.835.0
 ARG SSM_PLUGIN_SHA256=7c6dcad12518571cc7959a713e6a8ae1bdf6ed66fd9bee37dc189e39ca58ae03
@@ -110,8 +114,8 @@ ARG SSM_PLUGIN_SHA256=7c6dcad12518571cc7959a713e6a8ae1bdf6ed66fd9bee37dc189e39ca
 # float to match the apt browser version (fetched by version at build, like the browsers themselves).
 ARG GECKODRIVER_VERSION=0.37.1
 ARG GECKODRIVER_SHA256=e815130ea95983e162ae91843b48d3a3ce991735635fce83a647afde21e09f7e
-ARG SELENIUM_VERSION=4.46.0
-ARG SELENIUM_SHA256=2c60f188f136051b2565f709fc2272b0bb1ff37ad861d63cb16677a5c2876862
+ARG SELENIUM_VERSION=4.47.0
+ARG SELENIUM_SHA256=045002e16ba2530f1f47ff601323d2020390902e76f9bd20db02fc90e6f8ad75
 
 # DevOps tools — pinned binaries + SHA256 (Newman/Parcel via npm; Ansible/yamllint via pipx;
 # Fastlane via gem; Podman/Buildah/Skopeo from apt).
@@ -123,60 +127,60 @@ ARG MINIKUBE_VERSION=1.38.1
 ARG MINIKUBE_SHA256=099477eaf248bcb5bcea8ce78a2898e93ac01461c35189da1848c3de82ecd22e
 ARG KUSTOMIZE_VERSION=5.8.1
 ARG KUSTOMIZE_SHA256=029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d
-ARG PACKER_VERSION=1.15.4
-ARG PACKER_SHA256=15f97a6a99645c7d5308c609973b5280837b38e112beac413ccbce80da927cf1
-ARG BICEP_VERSION=0.45.15
-ARG BICEP_SHA256=ff5b194b042c220df4a50d6768ed1d6c39a32894bfdc4ff83d62b115d966a7ce
-ARG AZCOPY_VERSION=10.32.6
-ARG AZCOPY_SHA256=6538f7fb9ec6e4d159e44a1612ca7eee24fe7a822065a3dcbc664ef30fe85d16
-ARG CODEQL_VERSION=2.26.1
-ARG CODEQL_SHA256=38eca75ea296a6c48c52aff942b0678f06d3367140a5aa18caf80176943422ba
+ARG PACKER_VERSION=1.16.0
+ARG PACKER_SHA256=5edcd14ab59b535040c512dbecd6ec9ef976a000b073c19d93e4c431c948581e
+ARG BICEP_VERSION=0.46.1
+ARG BICEP_SHA256=3e011d629ea4311b7a7dd8f0040ab2b1a072ea4ff5d02cb75e0e55a9a6703fb9
+ARG AZCOPY_VERSION=10.32.7
+ARG AZCOPY_SHA256=771dabec5bd8034223010d6f5186956203649e1013ed1d9e6b533fc09ed4a9ee
+ARG CODEQL_VERSION=2.26.3
+ARG CODEQL_SHA256=77e5be1b550d66662e600e795b6cf2ea1729e853e3dc79e02594f767039d2a29
 ARG NEWMAN_VERSION=6.2.2
 ARG PARCEL_VERSION=2.16.4
-ARG LERNA_VERSION=9.0.7
+ARG LERNA_VERSION=10.0.1
 ARG TYPESCRIPT_VERSION=6.0.3
-ARG WEBPACK_VERSION=5.108.4
-ARG WEBPACK_CLI_VERSION=7.2.1
-ARG GRUNT_VERSION=1.6.2
+ARG WEBPACK_VERSION=5.109.2
+ARG WEBPACK_CLI_VERSION=7.2.2
+ARG GRUNT_VERSION=1.6.3
 ARG GULP_VERSION=5.0.1
-ARG FASTLANE_VERSION=2.237.0
+ARG FASTLANE_VERSION=2.238.0
 ARG MULTIJSON_VERSION=1.21.1
 
 # JVM project-management tools — Maven/Gradle pinned (Ant is from apt).
 ARG MAVEN_VERSION=3.9.16
 ARG MAVEN_SHA512=831a8591fe20c8243b1dbe7d71e3244f31d1665b0804b2e825e38cbbe5ce0cafb8338851f90780735568773e0a6cd07bbec107cda0b896b008b861075358b6f6
-ARG GRADLE_VERSION=9.6.1
-ARG GRADLE_SHA256=9c0f7faeeb306cb14e4279a3e084ca6b596894089a0638e68a07c945a32c9e14
+ARG GRADLE_VERSION=9.7.1
+ARG GRADLE_SHA256=acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a
 
 # Misc tools: Pulumi (pinned tarball), nvm (git tag), n (npm); Composer + PHPUnit (pinned phars).
-ARG PULUMI_VERSION=3.253.0
-ARG PULUMI_SHA256=33161e521280e6c77395a46344dba5ff9c118a90df254801e662087143b4d1ac
+ARG PULUMI_VERSION=3.259.0
+ARG PULUMI_SHA256=94ba357acac23d01474084c4b00098dc0f7bc70ce13f34c777459254a5f718e5
 # OpenTofu (MPL-2.0, OSS) — Terraform-compatible IaC; ubuntu-latest dropped Terraform (BSL), so this
 # is a deliberate OSS extra beyond strict parity.
-ARG OPENTOFU_VERSION=1.12.5
-ARG OPENTOFU_SHA256=dade9650e6b74fc7a8b986bd8717497d32f9e09cf82e479afef4977fa3085536
-ARG NVM_VERSION=0.40.6
+ARG OPENTOFU_VERSION=1.12.6
+ARG OPENTOFU_SHA256=5dc43da4f750f33873dc25e94587128709e819e544b7be9016b255316153c3a8
+ARG NVM_VERSION=0.40.7
 ARG N_VERSION=10.2.0
 ARG COMPOSER_VERSION=2.10.2
 ARG COMPOSER_SHA256=5ee7125f8a30a34d246cefdc0bc85b8a783b28f2aec968994118512350d28027
-ARG PHPUNIT_VERSION=8.5.53
-ARG PHPUNIT_SHA256=a6fb2a779d727a36149eb25b283e7ab54df5c733a4eac2e4eaa80a2cf387e885
+ARG PHPUNIT_VERSION=8.5.54
+ARG PHPUNIT_SHA256=26b4ad495b513f82f489ed754ee912cc5cbb7125c469a686ae23e793e93bac6d
 
 # Language runtimes (Julia/Kotlin pinned binaries; PowerShell tarball; Haskell via ghcup).
-ARG JULIA_VERSION=1.12.6
-ARG JULIA_SHA256=bbabf3bef19421a9dbd24a767d807606ab85e444323b5a1c73ffe293fa3d079a
+ARG JULIA_VERSION=1.12.7
+ARG JULIA_SHA256=4e7e9e776634d24835250de67cde39b0d4af15bc432eb20697e6be6c28ea69e8
 ARG KOTLIN_VERSION=2.4.10
 ARG KOTLIN_SHA256=473dd66c7a3ef4b182065b3da670466c1bf2773a9dbb0ed8b33a39fe9d4f876d
-ARG POWERSHELL_VERSION=7.6.4
-ARG POWERSHELL_SHA256=4471b5a36bfe86ec7af8525d36bb1cacba0128e7aac22d05cc064bc00e604721
+ARG POWERSHELL_VERSION=7.6.5
+ARG POWERSHELL_SHA256=b34ab3b19acac1d3d4d0d3cfdb02acf62f457b0b6a962ff008132033f7566844
 ARG GHCUP_VERSION=0.2.6.2
 ARG GHCUP_SHA256=9ed5da5449b48043a0d17e767c05d2ef585e25a639bb934329496c6d2fad9cf8
 # ghc/cabal/stack are installed through ghcup, so their versions are bounded by ghcup's
 # metadata catalog, not upstream GitHub releases — bump only to a ghcup-available version
 # (verified by the build). No Renovate manager for these; they track ubuntu-latest's pins.
 ARG GHC_VERSION=9.14.1
-ARG CABAL_VERSION=3.16.1.0
-ARG STACK_VERSION=3.9.3
+ARG CABAL_VERSION=3.18.1.0
+ARG STACK_VERSION=3.11.1
 ARG SWIFT_VERSION=6.3.3
 ARG SWIFT_SHA256=da8272a5fddccd65b1529ed0e52e04526e2eadd4237d58d6220efeb973c6cd19
 
@@ -187,8 +191,8 @@ ARG DOTNET_INSTALL_SHA256=082f7685e156738a1b2e2ed8381a621870d4ce8e8c59278034556f
 
 # Android SDK (cmdline-tools pinned + SHA256); NDK versions match the ANDROID_NDK* env below.
 # Manually bumped (no clean Renovate datasource): cmdline-tools build id, NDK/build-tools/platform.
-ARG ANDROID_CMDLINE_VERSION=14742923
-ARG ANDROID_CMDLINE_SHA256=04453066b540409d975c676d781da1477479dde3761310f1a7eb92a1dfb15af7
+ARG ANDROID_CMDLINE_VERSION=11076708
+ARG ANDROID_CMDLINE_SHA256=2d2d50857e4eb553af5a6dc3ad507a17adf43d115264b1afc116f95c92e5e258
 ARG ANDROID_NDK_VERSION=27.3.13750724
 ARG ANDROID_NDK_28_VERSION=28.2.13676358
 ARG ANDROID_NDK_LATEST_VERSION=29.0.14206865
@@ -202,16 +206,17 @@ ARG ANDROID_CMAKE2_VERSION=4.1.2
 
 # Environment managers + AWS SAM. Homebrew/vcpkg are pinned by git tag; Miniconda/SAM by SHA256.
 # MINICONDA_VERSION is bumped manually (no Renovate datasource for its pyXXX_NN.N.N-N installer name).
-ARG HOMEBREW_VERSION=6.0.12
-ARG VCPKG_VERSION=2026.06.24
-ARG MINICONDA_VERSION=py313_26.3.2-2
-ARG MINICONDA_SHA256=2284bafb7863a23411b19874d216e237964d4b32dd9beb6807fa8b2d84570961
-ARG SAM_VERSION=1.163.0
-ARG SAM_SHA256=3f12863f45da82bc2ad1fb837444cca57450bd07fef73449b917362ef2f5ab70
+ARG HOMEBREW_VERSION=6.0.19
+ARG VCPKG_VERSION=2026.07.29
+ARG MINICONDA_VERSION=py314_26.5.3-2
+ARG MINICONDA_SHA256=80bc27f13c4de90f10e387aa45e864de4f0860692c1221aef5900009a2b55302
+ARG SAM_VERSION=1.165.0
+ARG SAM_SHA256=e95678af994e5c1f12b59314de7bdee644be7246df1e85c4a4f2b48448d8569f
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUNNER_MANUALLY_TRAP_SIG=1 \
     ACTIONS_RUNNER_PRINT_LOG_TO_STDOUT=1 \
+    ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE=/opt/actionarchivecache \
     ImageOS=ubuntu24 \
     ImageVersion=24.04 \
     RUNNER_TOOL_CACHE=/opt/hostedtoolcache \
@@ -246,8 +251,13 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* /tmp/packages.txt
 
 # Newer Git from the maintainers' PPA (Ubuntu ships an older point release) — version parity.
+# add-apt-repository's single-shot Launchpad key fetch intermittently flakes
+# (GPGKeyTemporarilyNotFoundError), so retry until it succeeds — a transient hiccup must not break the
+# build. (A keyserver curl+dearmor was avoided: its ?op=get&search=0x… URL trips Dockle CIS-DI-0010.)
 # hadolint ignore=DL3008
-RUN add-apt-repository -y ppa:git-core/ppa \
+RUN i=0; until add-apt-repository -y ppa:git-core/ppa; do \
+      i=$((i+1)); [ "$i" -ge 5 ] && exit 1; echo "add-apt-repository retry ${i}"; sleep 5; \
+    done \
     && apt-get update \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
@@ -535,8 +545,8 @@ RUN mkdir -p /opt/microsoft/powershell/7 \
     && rm -f /tmp/pwsh.tar.gz \
     && pwsh -NoProfile -Command "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; \
        Install-Module -Name Az -RequiredVersion 15.6.1 -Scope AllUsers -Force; \
-       Install-Module -Name Microsoft.Graph -RequiredVersion 2.37.0 -Scope AllUsers -Force; \
-       Install-Module -Name Pester -RequiredVersion 5.7.1 -Scope AllUsers -Force; \
+       Install-Module -Name Microsoft.Graph -RequiredVersion 2.39.0 -Scope AllUsers -Force; \
+       Install-Module -Name Pester -RequiredVersion 5.9.0 -Scope AllUsers -Force; \
        Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope AllUsers -Force"
 
 ENV GHCUP_INSTALL_BASE_PREFIX=/usr/local
@@ -554,7 +564,7 @@ ENV DOTNET_ROOT=/usr/lib/dotnet \
 RUN curl -fsSL "https://raw.githubusercontent.com/dotnet/install-scripts/${DOTNET_INSTALL_COMMIT}/src/dotnet-install.sh" -o /tmp/dotnet-install.sh \
     && echo "${DOTNET_INSTALL_SHA256}  /tmp/dotnet-install.sh" | sha256sum -c - \
     && chmod +x /tmp/dotnet-install.sh \
-    && for v in 8.0.127 8.0.206 8.0.319 8.0.421 9.0.117 9.0.205 9.0.314 10.0.108 10.0.204 10.0.300; do \
+    && for v in 8.0.130 8.0.206 8.0.319 8.0.424 9.0.120 9.0.205 9.0.317 10.0.111 10.0.204 10.0.303 10.0.400; do \
          /tmp/dotnet-install.sh --version "${v}" --install-dir /usr/lib/dotnet --no-path || exit 1; \
        done \
     && ln -s /usr/lib/dotnet/dotnet /usr/local/bin/dotnet \
@@ -602,6 +612,15 @@ RUN RUNNER_ARCH="${TARGETARCH/amd64/x64}" \
                 "${d}bin/npm" "${d}bin/npx" "${d}bin/corepack"; \
        done \
     && chown -R runner:runner /home/runner
+
+# Action archive cache (matches ubuntu-latest install-actions-cache.sh): prebundled action tarballs
+# the runner resolves offline via $ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE. Pinned tarball + SHA256.
+RUN mkdir -p /opt/actionarchivecache \
+    && curl -fsSL "https://github.com/actions/action-versions/releases/download/v${ACTION_ARCHIVE_CACHE_VERSION}/action-versions.tar.gz" -o /tmp/action-versions.tar.gz \
+    && echo "${ACTION_ARCHIVE_CACHE_SHA256}  /tmp/action-versions.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/action-versions.tar.gz -C /opt/actionarchivecache \
+    && rm -f /tmp/action-versions.tar.gz \
+    && chown -R runner:runner /opt/actionarchivecache
 
 # Prebake the Python toolcache: tarball for the exact version from the manifest, SHA256 check, then
 # the bundled setup.sh (installs into $AGENT_TOOLSDIRECTORY/Python/<v>/x64 + a .complete marker for
@@ -800,7 +819,7 @@ LABEL org.opencontainers.image.title="runner-ubuntu-24.04" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.base.name="docker.io/library/ubuntu:24.04"
 
-USER runner
+USER 1001
 
 # ARC sets the command itself; CMD is just a default for manual runs.
 CMD ["/home/runner/run.sh"]
