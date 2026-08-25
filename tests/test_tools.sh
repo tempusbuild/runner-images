@@ -170,5 +170,14 @@ done
 [ -f /usr/share/fonts/truetype/noto/NotoColorEmoji.ttf ] || { echo "MISSING: noto color emoji font" >&2; fails=$((fails+1)); }
 echo "ok: xvfb + network diagnostics + acl/ftp/tk/emoji-font"
 
+# Action archive cache (full image only, parity with ubuntu-latest install-actions-cache.sh):
+# env var set + prebaked action bundles so the runner resolves the default actions offline.
+[ "${ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE:-}" = /opt/actionarchivecache ] \
+  || { echo "ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE unset/wrong: ${ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE:-}" >&2; fails=$((fails+1)); }
+shopt -s nullglob
+archive_bundles=(/opt/actionarchivecache/actions_cache/*.tar.gz)
+[ "${#archive_bundles[@]}" -gt 0 ] || { echo "action archive cache empty at /opt/actionarchivecache" >&2; fails=$((fails+1)); }
+echo "ok: action archive cache (${#archive_bundles[@]} bundles)"
+
 [ "$fails" -eq 0 ] || { echo "SMOKE FAILURES (tools): $fails" >&2; exit 1; }
 echo "OK: base tools present"
