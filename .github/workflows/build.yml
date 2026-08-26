@@ -67,7 +67,8 @@ jobs:
           context: ubuntu-24.04
           outputs: type=image,name=ghcr.io/tempusbuild/runner-ubuntu-24.04,push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.meta.outputs.labels }}
-          sbom: true              # SBOM attestation (SPDX)
+          # No inline BuildKit SBOM: the action archive cache pushes the SPDX blob past BuildKit's
+          # 40 MiB attestation cap. The SBOM comes from the cosign-attached CycloneDX below instead.
           provenance: mode=max    # SLSA provenance attestation (targets Build L3)
 
       # The ~4 GiB builder cache is dead weight past the push.
