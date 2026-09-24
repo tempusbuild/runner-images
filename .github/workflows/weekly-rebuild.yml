@@ -17,11 +17,16 @@ jobs:
       packages: write       # push image to ghcr (in build.yml)
       id-token: write       # cosign keyless + Sigstore attestations (in build.yml)
       attestations: write   # GitHub artifact attestations (in build.yml)
-    uses: ./.github/workflows/build.yml
+    # Stays ./: actionlint (v1.7.12, a required gate) rejects $/, and a $/ call may surface
+    # job_workflow_ref as build.yml@<sha>, breaking the published cosign identity
+    # (build.yml@refs/heads/main, see SECURITY.md).
+    uses: ./.github/workflows/build.yml  # zizmor: ignore[self-repository]
 
   notify-failure:
     needs: rebuild
     if: failure() && github.event_name == 'schedule'
     permissions:
       issues: write   # failure issue (in notify-failure.yml)
-    uses: ./.github/workflows/notify-failure.yml
+    # ./ reusable-workflow calls resolve server-side at the caller's commit (not from the workspace);
+    # $/ is rejected by actionlint (v1.7.12), a required gate.
+    uses: ./.github/workflows/notify-failure.yml  # zizmor: ignore[self-repository]

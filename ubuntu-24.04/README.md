@@ -6,15 +6,15 @@ Full runner image for ARC `gha-runner-scale-set`, label `tempus-ubuntu-24.04-4co
 
 | Component                     | Version                                                                                                                                                                                           | Source (verify before bumping)                                                        |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Base                          | Ubuntu 24.04 (noble), pinned by digest `sha256:33ceb719…`                                                                                                                                         | hub.docker.com/\_/ubuntu — bump digest on weekly rebuild                              |
-| Actions runner                | `2.336.0` (ARG `RUNNER_VERSION`)                                                                                                                                                                  | github.com/actions/runner/releases                                                    |
+| Base                          | Ubuntu 24.04 (noble), pinned by digest `sha256:008173c2…`                                                                                                                                         | hub.docker.com/\_/ubuntu — bump digest on weekly rebuild                              |
+| Actions runner                | `2.337.0` (ARG `RUNNER_VERSION`)                                                                                                                                                                  | github.com/actions/runner/releases                                                    |
 | Node.js                       | LTS, major `22` (ARG `NODE_MAJOR`)                                                                                                                                                                | nodejs.org/en/about/previous-releases                                                 |
 | Python (system)               | 3.12 (system on 24.04) + `pip`, `venv`, dev headers (`python3-dev`)                                                                                                                               | packages.ubuntu.com                                                                   |
 | Python (toolcache, prebake)   | `3.10.21`, `3.11.16`, `3.12.14`, `3.13.15`, `3.14.7` in `/opt/hostedtoolcache/Python/<v>/x64` (ARG `PYTHON_31x`)                                                                                  | actions/python-versions `versions-manifest.json` — same builds `setup-python` fetches |
-| Go (toolcache, prebake)       | `1.25.14`, `1.26.7` — supported minors (1.25 / 1.26) in `/opt/hostedtoolcache/go/<v>/x64` (ARG `GO_125`/`GO_126`)                                                                                 | go.dev/dl — SHA256 from `?mode=json&include=all`; `setup-go` layout (cache hit)       |
-| Rust (rustup)                 | toolchain `1.98.0` (rustup `1.29.0`), default profile = rustc+cargo+rust-std+rustfmt+clippy; `RUSTUP_HOME=/usr/local/rustup`, `CARGO_HOME=/usr/local/cargo` (ARG `RUST_VERSION`/`RUSTUP_VERSION`) | static.rust-lang.org — pinned `rustup-init` + SHA256                                  |
+| Go (toolcache, prebake)       | `1.25.14`, `1.26.8` — supported minors (1.25 / 1.26) in `/opt/hostedtoolcache/go/<v>/x64` (ARG `GO_125`/`GO_126`)                                                                                 | go.dev/dl — SHA256 from `?mode=json&include=all`; `setup-go` layout (cache hit)       |
+| Rust (rustup)                 | toolchain `1.98.1` (rustup `1.29.1`), default profile = rustc+cargo+rust-std+rustfmt+clippy; `RUSTUP_HOME=/usr/local/rustup`, `CARGO_HOME=/usr/local/cargo` (ARG `RUST_VERSION`/`RUSTUP_VERSION`) | static.rust-lang.org — pinned `rustup-init` + SHA256                                  |
 | pipx                          | `1.16.7`, pinned via `pip` (ARG `PIPX_VERSION`) — isolated installs of Python CLI tools                                                                                                           | PyPI                                                                                  |
-| CMake / Git LFS               | `3.31.12` (+ `4.4.2` as `cmake4`) / `3.7.1` — pinned binaries + SHA256 (ARG `CMAKE_VERSION`/`CMAKE4_VERSION`/`GITLFS_VERSION`)                                                                    | github.com/Kitware/CMake, github.com/git-lfs/git-lfs releases                         |
+| CMake / Git LFS               | `3.31.12` (+ `4.4.2` as `cmake4`) / `3.8.0` — pinned binaries + SHA256 (ARG `CMAKE_VERSION`/`CMAKE4_VERSION`/`GITLFS_VERSION`)                                                                    | github.com/Kitware/CMake, github.com/git-lfs/git-lfs releases                         |
 | yq (mikefarah)                | `4.53.6` — pinned binary + SHA256 (ARG `YQ_VERSION`)                                                                                                                                              | github.com/mikefarah/yq releases                                                      |
 | GitHub CLI (`gh`)             | from the cli.github.com repo (workflows commonly call `gh`)                                                                                                                                       | cli.github.com                                                                        |
 | Docker CLI + buildx + compose | from the download.docker.com repo                                                                                                                                                                 | docs.docker.com                                                                       |
@@ -92,11 +92,12 @@ Included:
 - databases: PostgreSQL 16 (PGDG) and MySQL 8.0 — clients and servers;
 - browsers + drivers: Google Chrome + ChromeDriver, Microsoft Edge + msedgedriver, Firefox (from the
   Mozilla apt repo, not snap) + geckodriver, and Selenium Server (`selenium-server`, runs on Temurin);
-- DevOps: Ansible, Bazel/Bazelisk, Podman/Buildah/Skopeo, Kind, Minikube, Kustomize, Packer, Bicep,
-  AzCopy (`azcopy`/`azcopy10`), Newman, Parcel, Fastlane, yamllint, the CodeQL bundle (in the
-  toolcache + on `PATH`), the Amazon ECR credential helper (`docker-credential-ecr-login`) and the
-  AWS Session Manager plugin (`session-manager-plugin`); plus OpenTofu (`tofu`, MPL-2.0) — the OSS
-  Terraform-compatible IaC tool (ubuntu-latest dropped Terraform under its BSL license);
+- DevOps: Ansible, Bazel/Bazelisk, Podman/Buildah/Skopeo, Kind, Minikube (default container runtime
+  is containerd since 1.39), Kustomize, Packer, Bicep, AzCopy (`azcopy`/`azcopy10`), Newman, Parcel,
+  Fastlane, yamllint, the CodeQL bundle (in the toolcache + on `PATH`), the Amazon ECR credential
+  helper (`docker-credential-ecr-login`) and the AWS Session Manager plugin
+  (`session-manager-plugin`); plus OpenTofu (`tofu`, MPL-2.0) — the OSS Terraform-compatible IaC
+  tool (ubuntu-latest dropped Terraform under its BSL license);
 - the runner **action archive cache** (`ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE=/opt/actionarchivecache`,
   parity with ubuntu-latest's `install-actions-cache.sh`): prebundled tarballs of common actions so
   the runner resolves them offline instead of downloading on every run;
@@ -109,7 +110,7 @@ Included:
 - PHP 8.3 + extensions (incl. `memcache`/`memcached`; Xdebug enabled, PCOV installed-but-disabled —
   parity with ubuntu-latest), Composer, PHPUnit; Pulumi; `n` and `nvm` (`$NVM_DIR`); `git-ftp`;
   Sphinx search server;
-- more languages: Swift 6.3, Julia 1.12, Kotlin 2.4, Haskell (GHC 9.14 / Cabal / Stack via `ghcup`),
+- more languages: Swift 6.4, Julia 1.12, Kotlin 2.4, Haskell (GHC 9.14 / Cabal / Stack via `ghcup`),
   .NET SDK 8/9/10 (+ `nbgv`), PowerShell 7.6 (+ Az / Microsoft.Graph / Pester / PSScriptAnalyzer);
 - web servers: Apache2 and Nginx;
 - Android: full ubuntu-latest matrix via `sdkmanager` — cmdline-tools, platform-tools, every
@@ -160,4 +161,8 @@ For CLI tools — `pipx`. This matches ubuntu-latest behaviour.
 
 - Full ubuntu-latest toolset parity (see the inclusion policy above); the long tail (extra toolcache
   patches, Android components published after the build) installs on demand via `setup-*` / `sdkmanager`.
+- "Set up job" image info: the full image ships `/imagegeneration/imagedata.json` (ubuntu-latest's
+  format plus a runner line) with an **Operating System** group (Ubuntu release) and a
+  **Runner Image** group (image name, `vYYYYMMDD` version, runner version, and links to this README
+  at the build commit and to the ghcr package). The runtime environment surfaces it in the job log.
 - The `minimal` variant (`../ubuntu-24.04-minimal/`) — no Node/Docker, just runner + base.

@@ -2,18 +2,18 @@
 # Ubuntu 24.04 runner image for ARC gha-runner-scale-set (label tempus-ubuntu-24.04-4core):
 # runner-agent + base CI toolchain.
 # Base pinned by digest; bump on weekly rebuild via `docker buildx imagetools inspect`.
-FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
+FROM ubuntu:24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3
 
-ARG RUNNER_VERSION=2.336.0
+ARG RUNNER_VERSION=2.337.0
 # SHA256 of the linux-x64 runner tarball (from release notes); recompute on version bump. x64-only.
-ARG RUNNER_SHA256=04cf0be1aff4c3ec3554466c39124ca250e3effd8873bb7e8d68535aa9505d5d
+ARG RUNNER_SHA256=70920811a4f8ad4328818682bca5c6469c1c942fab52448868071d0063816613
 # Action archive cache (parity with ubuntu-latest install-actions-cache.sh): prebundled tarballs of
 # common actions the runner resolves offline. Pinned tarball + SHA256 (recompute on bump). ~273 MB.
-ARG ACTION_ARCHIVE_CACHE_VERSION=1.0.53
-ARG ACTION_ARCHIVE_CACHE_SHA256=af0f07f79b208f6ab409f99207f21bfe085db006ada0f4ca41c4aa66bbafb127
+ARG ACTION_ARCHIVE_CACHE_VERSION=1.0.55
+ARG ACTION_ARCHIVE_CACHE_SHA256=ac2595a79073020b9635229db191a1141e5dfaff2f00b7bf20d69b7bcb203f7a
 ARG NODE_MAJOR=22
 # Fresh npm: npm's bundled deps from NodeSource pull in CVEs.
-ARG NPM_VERSION=11.19.0
+ARG NPM_VERSION=11.20.0
 ARG TARGETARCH=amd64
 
 # Python toolcache (matches setup-python: same actions/python-versions builds, offline cache hit).
@@ -38,26 +38,26 @@ ARG SETUPTOOLS_VERSION=83.0.0
 # anyone needing them installs via setup-go from the network. SHA256 from go.dev/dl JSON
 # (files[].sha256 field). Recompute on bump (go.dev/dl/?mode=json&include=all).
 ARG GO_125=1.25.14
-ARG GO_126=1.26.7
+ARG GO_126=1.26.8
 ARG GO_125_SHA256=a21ae5633a269bcd7e90cf767e48225633795e99d831742cbf3397064fee7712
-ARG GO_126_SHA256=ffb5f8de10c62550dfddab66b36b57030721e0a44a3218e9e1181d7b59f121ca
+ARG GO_126_SHA256=d0f743b33e8d8945e6b1f432edd15785c70507121d6e2a723b21285eddf8b57b
 
 # Node.js toolcache (matches setup-node: offline cache hit). Newest patch of each cached major
 # (22, 24); SHA256 from nodejs.org SHASUMS256.txt. NODE_MAJOR above is the system Node (apt).
-ARG NODE_TC_22=22.23.2
-ARG NODE_TC_24=24.19.0
-ARG NODE_TC_22_SHA256=b294a556e639d64338823920e5866c21c02741742d2e1529ee1a225c1ec9252a
-ARG NODE_TC_24_SHA256=f625d97cd707df4ff96254916fbc5ff014f09c09effe5a1e0ca8f6d41a8789d4
+ARG NODE_TC_22=22.23.3
+ARG NODE_TC_24=24.21.0
+ARG NODE_TC_22_SHA256=1084aa36196bba4c3a5e69a1ee388a6e4ff729dad09445fbcd434b28fe3c24af
+ARG NODE_TC_24_SHA256=6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff
 
 # Ruby toolcache (matches ruby/setup-ruby): prebuilt ruby-builder tarballs for ubuntu-24.04.
 ARG RUBY_32=3.2.11
 ARG RUBY_33=3.3.12
-ARG RUBY_34=3.4.10
-ARG RUBY_40=4.0.6
+ARG RUBY_34=3.4.11
+ARG RUBY_40=4.0.7
 ARG RUBY_32_SHA256=1b89cf6de50def9e15701f369e526c4fbfb79abf1f7576b01eec695291d46299
 ARG RUBY_33_SHA256=3fa2d6242e105a65f694fae86e9f68d9617c827fc14d1fcf611035b9ae2cbdb8
-ARG RUBY_34_SHA256=2a16c29b57203754da3fcb0c25d9dd7f7340e858f46f835bef32feef348ebc93
-ARG RUBY_40_SHA256=a65a82adf40df54d9bfcab4c61055f01bccff14a52c5b7c0c2cfecc1e9895fae
+ARG RUBY_34_SHA256=e3d114c546332243f84755aa277ba1e1781deba686050d729d2806d3766baf25
+ARG RUBY_40_SHA256=a11b84469b76a38175bce72176f66389fc05b87a3e7545329e8685b01dcb2176
 
 # PyPy toolcache (matches actions/setup-pypy): dir named by the Python-compat version; PyPy build in
 # the filename. Tarball symlinks (python3 -> pypy3) are already present. Bumped manually (the
@@ -74,9 +74,9 @@ ARG PYPY_311_SHA256=16f9f56e82d1f4ec95a324c1a8cacfd78afc7f0656c0a809a18725ef4391
 
 # Rust via pinned rustup-init (not `curl | sh`): tarball by URL + SHA256 from <url>.sha256.
 # default profile = rustc+cargo+rust-std+rustfmt+clippy. Exact toolchain pin for reproducibility.
-ARG RUSTUP_VERSION=1.29.0
-ARG RUST_VERSION=1.98.0
-ARG RUSTUP_SHA256=4acc9acc76d5079515b46346a485974457b5a79893cfb01112423c89aeb5aa10
+ARG RUSTUP_VERSION=1.29.1
+ARG RUST_VERSION=1.98.1
+ARG RUSTUP_SHA256=dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71
 
 # yq (mikefarah) pinned binary + SHA256 — parity with ubuntu-latest (jq comes from apt; yq does not).
 ARG YQ_VERSION=4.53.6
@@ -88,8 +88,8 @@ ARG CMAKE_VERSION=3.31.12
 ARG CMAKE_SHA256=0dc2e9a6860f06bf10bd8fadc03e35d9eeb4df46e33763a7e480e987758f385c
 ARG CMAKE4_VERSION=4.4.2
 ARG CMAKE4_SHA256=3ada9a3f5d8a85413579bdd0ea6aa8e8da86efdd6d15c91a1afa517f2021956c
-ARG GITLFS_VERSION=3.7.1
-ARG GITLFS_SHA256=1c0b6ee5200ca708c5cebebb18fdeb0e1c98f1af5c1a9cba205a4c0ab5a5ec08
+ARG GITLFS_VERSION=3.8.0
+ARG GITLFS_SHA256=e455e00f15d9b95661b8d53498ffb0c3367962cf1ec73c31ab7369516cd6ab8d
 # pipx pinned via pip (Ubuntu's apt pipx lags behind ubuntu-latest).
 ARG PIPX_VERSION=1.16.7
 
@@ -98,14 +98,14 @@ ARG ZSTD_VERSION=1.5.7
 ARG ZSTD_SHA256=eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3
 
 # kubectl / Helm pinned binaries + SHA256. Helm stays on 3.x (ubuntu-latest parity), not v4 (major).
-ARG KUBECTL_VERSION=1.36.4
-ARG KUBECTL_SHA256=8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a
-ARG HELM_VERSION=3.21.4
-ARG HELM_SHA256=61f88ab166748cb19604d7884cb100ae9ccb13804ddeb98e08af167eacbb6a14
+ARG KUBECTL_VERSION=1.37.1
+ARG KUBECTL_SHA256=65691ff77eb6fa44c908b77a1082c9f092c3b9733b5cefabec0d1104890e21a8
+ARG HELM_VERSION=3.22.0
+ARG HELM_SHA256=1e4ab49e429626cf6c6958d914248b78c9730803c2751b87627e171dc800e7bb
 
 # AWS CLI v2 pinned installer + SHA256. Azure CLI and Google Cloud CLI come from vendor apt repos.
-ARG AWSCLI_VERSION=2.36.31
-ARG AWSCLI_SHA256=96ab904b1fec2b49972685aecc1d2e8c0fd0c981d7a81f5dc5d2dd725ace05f1
+ARG AWSCLI_VERSION=2.37.1
+ARG AWSCLI_SHA256=61a79950dfb436985611a258d3a8f85a47e13498fcc72c7d8d0597f5c9fde133
 # AWS Session Manager plugin (.deb from AWS S3) — pinned version + SHA256 of the deb.
 ARG SSM_PLUGIN_VERSION=1.2.835.0
 ARG SSM_PLUGIN_SHA256=7c6dcad12518571cc7959a713e6a8ae1bdf6ed66fd9bee37dc189e39ca58ae03
@@ -114,37 +114,37 @@ ARG SSM_PLUGIN_SHA256=7c6dcad12518571cc7959a713e6a8ae1bdf6ed66fd9bee37dc189e39ca
 # float to match the apt browser version (fetched by version at build, like the browsers themselves).
 ARG GECKODRIVER_VERSION=0.37.1
 ARG GECKODRIVER_SHA256=e815130ea95983e162ae91843b48d3a3ce991735635fce83a647afde21e09f7e
-ARG SELENIUM_VERSION=4.47.0
-ARG SELENIUM_SHA256=045002e16ba2530f1f47ff601323d2020390902e76f9bd20db02fc90e6f8ad75
+ARG SELENIUM_VERSION=4.49.0
+ARG SELENIUM_SHA256=8221cb7bf687b8ca13c31c2bca9fb8cc12e9d4c808baff670c66cb0e450ceb35
 
 # DevOps tools — pinned binaries + SHA256 (Newman/Parcel via npm; Ansible/yamllint via pipx;
 # Fastlane via gem; Podman/Buildah/Skopeo from apt).
 ARG BAZELISK_VERSION=1.29.0
 ARG BAZELISK_SHA256=5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992
-ARG KIND_VERSION=0.32.0
-ARG KIND_SHA256=50030de23cf40a18505f20426f6a8506bedf13c6e509244bd1fa9463721b0f54
-ARG MINIKUBE_VERSION=1.38.1
-ARG MINIKUBE_SHA256=099477eaf248bcb5bcea8ce78a2898e93ac01461c35189da1848c3de82ecd22e
+ARG KIND_VERSION=0.33.0
+ARG KIND_SHA256=aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d
+ARG MINIKUBE_VERSION=1.39.0
+ARG MINIKUBE_SHA256=b738496da01be06bbaf80c688f57ce25acd3849fbb518155f3a88e03ef555aa4
 ARG KUSTOMIZE_VERSION=5.8.1
 ARG KUSTOMIZE_SHA256=029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d
-ARG PACKER_VERSION=1.16.0
-ARG PACKER_SHA256=5edcd14ab59b535040c512dbecd6ec9ef976a000b073c19d93e4c431c948581e
-ARG BICEP_VERSION=0.46.1
-ARG BICEP_SHA256=3e011d629ea4311b7a7dd8f0040ab2b1a072ea4ff5d02cb75e0e55a9a6703fb9
-ARG AZCOPY_VERSION=10.32.7
-ARG AZCOPY_SHA256=771dabec5bd8034223010d6f5186956203649e1013ed1d9e6b533fc09ed4a9ee
-ARG CODEQL_VERSION=2.26.3
-ARG CODEQL_SHA256=77e5be1b550d66662e600e795b6cf2ea1729e853e3dc79e02594f767039d2a29
+ARG PACKER_VERSION=1.16.1
+ARG PACKER_SHA256=af38a9e93e4ed1b9ca68206ae969c64c300c82a3dde46a780dfa629f0867f651
+ARG BICEP_VERSION=0.47.16
+ARG BICEP_SHA256=64c345a58e0c3e48b1bc98a4e62d6b3adb1d238281297de3400aeafb2697aa5a
+ARG AZCOPY_VERSION=10.32.8
+ARG AZCOPY_SHA256=a95277dbc265912cefdddbaf251aa99ec648cb18ba657e8788066357a9022dc3
+ARG CODEQL_VERSION=2.27.1
+ARG CODEQL_SHA256=1d380f79896ededc654c7b21fafb3360136f1aeb678ad4df4df9af3910c6b815
 ARG NEWMAN_VERSION=6.2.2
 ARG PARCEL_VERSION=2.16.4
 ARG LERNA_VERSION=10.0.1
 ARG TYPESCRIPT_VERSION=6.0.3
-ARG WEBPACK_VERSION=5.109.2
-ARG WEBPACK_CLI_VERSION=7.2.2
+ARG WEBPACK_VERSION=5.111.1
+ARG WEBPACK_CLI_VERSION=7.2.3
 ARG GRUNT_VERSION=1.6.3
 ARG GULP_VERSION=5.0.1
-ARG FASTLANE_VERSION=2.238.0
-ARG MULTIJSON_VERSION=1.21.1
+ARG FASTLANE_VERSION=2.240.1
+ARG MULTIJSON_VERSION=1.21.2
 
 # JVM project-management tools — Maven/Gradle pinned (Ant is from apt).
 ARG MAVEN_VERSION=3.9.16
@@ -153,26 +153,26 @@ ARG GRADLE_VERSION=9.7.1
 ARG GRADLE_SHA256=acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a
 
 # Misc tools: Pulumi (pinned tarball), nvm (git tag), n (npm); Composer + PHPUnit (pinned phars).
-ARG PULUMI_VERSION=3.259.0
-ARG PULUMI_SHA256=94ba357acac23d01474084c4b00098dc0f7bc70ce13f34c777459254a5f718e5
+ARG PULUMI_VERSION=3.264.0
+ARG PULUMI_SHA256=0217cd1624a07e4078830b4596901553373822b603e9189db76b542f7d2d4841
 # OpenTofu (MPL-2.0, OSS) — Terraform-compatible IaC; ubuntu-latest dropped Terraform (BSL), so this
 # is a deliberate OSS extra beyond strict parity.
 ARG OPENTOFU_VERSION=1.12.6
 ARG OPENTOFU_SHA256=5dc43da4f750f33873dc25e94587128709e819e544b7be9016b255316153c3a8
-ARG NVM_VERSION=0.40.7
+ARG NVM_VERSION=0.40.8
 ARG N_VERSION=10.2.0
-ARG COMPOSER_VERSION=2.10.2
-ARG COMPOSER_SHA256=5ee7125f8a30a34d246cefdc0bc85b8a783b28f2aec968994118512350d28027
-ARG PHPUNIT_VERSION=8.5.54
-ARG PHPUNIT_SHA256=26b4ad495b513f82f489ed754ee912cc5cbb7125c469a686ae23e793e93bac6d
+ARG COMPOSER_VERSION=2.10.3
+ARG COMPOSER_SHA256=7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6
+ARG PHPUNIT_VERSION=8.5.55
+ARG PHPUNIT_SHA256=7826b44fd6289d8913c6f34d845b25ac57c0a48a20b3d01e0f0c00c3087abf7b
 
 # Language runtimes (Julia/Kotlin pinned binaries; PowerShell tarball; Haskell via ghcup).
 ARG JULIA_VERSION=1.12.7
 ARG JULIA_SHA256=4e7e9e776634d24835250de67cde39b0d4af15bc432eb20697e6be6c28ea69e8
-ARG KOTLIN_VERSION=2.4.10
-ARG KOTLIN_SHA256=473dd66c7a3ef4b182065b3da670466c1bf2773a9dbb0ed8b33a39fe9d4f876d
-ARG POWERSHELL_VERSION=7.6.5
-ARG POWERSHELL_SHA256=b34ab3b19acac1d3d4d0d3cfdb02acf62f457b0b6a962ff008132033f7566844
+ARG KOTLIN_VERSION=2.4.20
+ARG KOTLIN_SHA256=59e9ca74c7904ef2c122b12114937673ccce68de820a663f0ed66ccf8799e0b7
+ARG POWERSHELL_VERSION=7.6.6
+ARG POWERSHELL_SHA256=ddbc4a2d113bbd46d283cfedcbcd117a70caefd7673f41f2b4e0000badf103bc
 ARG GHCUP_VERSION=0.2.6.2
 ARG GHCUP_SHA256=9ed5da5449b48043a0d17e767c05d2ef585e25a639bb934329496c6d2fad9cf8
 # ghc/cabal/stack are installed through ghcup, so their versions are bounded by ghcup's
@@ -181,8 +181,8 @@ ARG GHCUP_SHA256=9ed5da5449b48043a0d17e767c05d2ef585e25a639bb934329496c6d2fad9cf
 ARG GHC_VERSION=9.14.1
 ARG CABAL_VERSION=3.18.1.0
 ARG STACK_VERSION=3.11.1
-ARG SWIFT_VERSION=6.3.3
-ARG SWIFT_SHA256=da8272a5fddccd65b1529ed0e52e04526e2eadd4237d58d6220efeb973c6cd19
+ARG SWIFT_VERSION=6.4.0
+ARG SWIFT_SHA256=69f7b2b4dbce6090b6c92194b71149a057e16269093b5a9dded38afc4a05094e
 
 # dotnet-install.sh pinned to a commit + SHA256 (not the rolling dot.net/v1 script); it drives the
 # version-pinned SDK installs below. Bump commit + recompute SHA256 together (manual).
@@ -206,12 +206,12 @@ ARG ANDROID_CMAKE2_VERSION=4.1.2
 
 # Environment managers + AWS SAM. Homebrew/vcpkg are pinned by git tag; Miniconda/SAM by SHA256.
 # MINICONDA_VERSION is bumped manually (no Renovate datasource for its pyXXX_NN.N.N-N installer name).
-ARG HOMEBREW_VERSION=6.0.19
+ARG HOMEBREW_VERSION=6.0.22
 ARG VCPKG_VERSION=2026.07.29
-ARG MINICONDA_VERSION=py314_26.5.3-2
-ARG MINICONDA_SHA256=80bc27f13c4de90f10e387aa45e864de4f0860692c1221aef5900009a2b55302
-ARG SAM_VERSION=1.165.0
-ARG SAM_SHA256=e95678af994e5c1f12b59314de7bdee644be7246df1e85c4a4f2b48448d8569f
+ARG MINICONDA_VERSION=py314_26.7.1-1
+ARG MINICONDA_SHA256=e8b25b92b262499141c5bd57a98d3c008024185fa951494b9cd9b6d94e72338b
+ARG SAM_VERSION=1.166.2
+ARG SAM_SHA256=4419ea4bb4ae1c69d2d41b346f77fdcd80099ae4ba9da7278e23427d54b05420
 
 ENV DEBIAN_FRONTEND=noninteractive \
     RUNNER_MANUALLY_TRAP_SIG=1 \
@@ -242,10 +242,27 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# A mirror mid-sync can serve an InRelease newer than its package indices ("File has unexpected
+# size ... Mirror sync in progress?"). apt's per-file Acquire::Retries re-fetches the same stale file,
+# so the whole update is retried after a pause instead. --error-on=any also turns network failures
+# (a warning with exit 0 by default) into a retried error. COPY (not RUN) keeps the script body out of
+# the layer history, which Dockle would otherwise read as a bare 'apt-get update'.
+COPY --chmod=0755 <<'EOF' /usr/local/sbin/apt-get-update-retry
+#!/bin/bash
+set -euo pipefail
+for attempt in 1 2 3 4 5; do
+  apt-get update --error-on=any && exit 0
+  [ "$attempt" -lt 5 ] || break
+  echo "apt-get update failed (attempt ${attempt}/5), retrying in 20s" >&2
+  sleep 20
+done
+exit 1
+EOF
+
 # DL3008 (apt version pinning) is intentionally ignored on the Node/Docker/gh installs below: the
 # image pulls fresh security patches (weekly rebuild), pinning every version is impractical.
 COPY packages.txt /tmp/packages.txt
-RUN apt-get update \
+RUN apt-get-update-retry \
     && xargs -a /tmp/packages.txt apt-get install -y --no-install-recommends \
     && phpdismod -v 8.3 pcov \
     && rm -rf /var/lib/apt/lists/* /tmp/packages.txt
@@ -258,7 +275,7 @@ RUN apt-get update \
 RUN i=0; until add-apt-repository -y ppa:git-core/ppa; do \
       i=$((i+1)); [ "$i" -ge 5 ] && exit 1; echo "add-apt-repository retry ${i}"; sleep 5; \
     done \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
@@ -273,7 +290,7 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && chmod a+r /etc/apt/keyrings/nodesource.asc \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
        > /etc/apt/sources.list.d/nodesource.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g "npm@${NPM_VERSION}" \
     && corepack enable \
@@ -288,7 +305,7 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && chmod a+r /etc/apt/keyrings/docker.asc \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" \
        > /etc/apt/sources.list.d/docker.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends docker-ce-cli docker-buildx-plugin docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
@@ -298,7 +315,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o 
     && chmod a+r /etc/apt/keyrings/githubcli.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/githubcli.gpg] https://cli.github.com/packages stable main" \
        > /etc/apt/sources.list.d/github-cli.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
@@ -360,7 +377,7 @@ RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor
     && chmod a+r /etc/apt/keyrings/microsoft.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ noble main" \
        > /etc/apt/sources.list.d/azure-cli.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends azure-cli \
     && mkdir -p "${AZURE_EXTENSION_DIR}" \
     && az extension add -n azure-devops \
@@ -372,7 +389,7 @@ RUN curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dea
     && chmod a+r /etc/apt/keyrings/cloud.google.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
        > /etc/apt/sources.list.d/google-cloud-sdk.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends google-cloud-cli \
     && rm -rf /var/lib/apt/lists/*
 
@@ -382,7 +399,7 @@ RUN curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gp
     && chmod a+r /etc/apt/keyrings/adoptium.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb noble main" \
        > /etc/apt/sources.list.d/adoptium.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends temurin-8-jdk temurin-11-jdk temurin-17-jdk temurin-21-jdk temurin-25-jdk \
     && update-alternatives --set java /usr/lib/jvm/temurin-17-jdk-amd64/bin/java \
     && update-alternatives --set javac /usr/lib/jvm/temurin-17-jdk-amd64/bin/javac \
@@ -400,7 +417,7 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmo
     && chmod a+r /etc/apt/keyrings/pgdg.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
        > /etc/apt/sources.list.d/pgdg.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends postgresql-16 postgresql-client-16 mysql-server mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
@@ -411,7 +428,7 @@ RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor
     && chmod a+r /etc/apt/keyrings/google-chrome.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
        > /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends google-chrome-stable \
     && CHROME_VER="$(google-chrome-stable --version | grep -oE '[0-9]+(\.[0-9]+){3}')" \
     && curl -fsSL "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VER}/linux64/chromedriver-linux64.zip" -o /tmp/chromedriver.zip \
@@ -425,7 +442,7 @@ RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor
 # hadolint ignore=DL3008
 RUN echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/edge stable main" \
        > /etc/apt/sources.list.d/microsoft-edge.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends microsoft-edge-stable \
     && EDGE_VER="$(microsoft-edge-stable --version | grep -oE '[0-9]+(\.[0-9]+){3}')" \
     && curl -fsSL "https://msedgedriver.microsoft.com/${EDGE_VER}/edgedriver_linux64.zip" -o /tmp/edgedriver.zip \
@@ -443,7 +460,7 @@ RUN curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg -o /etc/apt
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" \
        > /etc/apt/sources.list.d/mozilla.list \
     && printf 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n' > /etc/apt/preferences.d/mozilla \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends firefox \
     && curl -fsSL "https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz" -o /tmp/geckodriver.tar.gz \
     && echo "${GECKODRIVER_SHA256}  /tmp/geckodriver.tar.gz" | sha256sum -c - \
@@ -564,7 +581,7 @@ ENV DOTNET_ROOT=/usr/lib/dotnet \
 RUN curl -fsSL "https://raw.githubusercontent.com/dotnet/install-scripts/${DOTNET_INSTALL_COMMIT}/src/dotnet-install.sh" -o /tmp/dotnet-install.sh \
     && echo "${DOTNET_INSTALL_SHA256}  /tmp/dotnet-install.sh" | sha256sum -c - \
     && chmod +x /tmp/dotnet-install.sh \
-    && for v in 8.0.130 8.0.206 8.0.319 8.0.424 9.0.120 9.0.205 9.0.317 10.0.111 10.0.204 10.0.303 10.0.400; do \
+    && for v in 8.0.131 8.0.206 8.0.319 8.0.425 9.0.121 9.0.205 9.0.318 10.0.112 10.0.204 10.0.303 10.0.401; do \
          /tmp/dotnet-install.sh --version "${v}" --install-dir /usr/lib/dotnet --no-path || exit 1; \
        done \
     && ln -s /usr/lib/dotnet/dotnet /usr/local/bin/dotnet \
@@ -808,6 +825,25 @@ RUN curl -fsSL "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/x8
     && /tmp/rustup-init -y --no-modify-path --profile default --default-toolchain "${RUST_VERSION}" \
     && rm -f /tmp/rustup-init \
     && chown -R runner:runner /usr/local/rustup /usr/local/cargo
+
+# Public image metadata in ubuntu-latest's imagedata.json format (configure-image-data.sh) plus a
+# Runner line. The runner itself only reads .setup_info, which the pod entrypoint writes at runtime
+# and may source from this file; the image deliberately ships no .setup_info.
+ARG IMAGE_VERSION=dev
+ARG IMAGE_REVISION=main
+RUN install -d -m 0755 /imagegeneration \
+    && IMAGE_VERSION="${IMAGE_VERSION}" IMAGE_REVISION="${IMAGE_REVISION}" RUNNER_VERSION="${RUNNER_VERSION}" \
+       python3 -c 'import json, os, platform; e = os.environ; repo = "https://github.com/tempusbuild/runner-images"; \
+os_name = platform.freedesktop_os_release()["PRETTY_NAME"].replace(" ", "\n"); \
+detail = "\n".join([ \
+    "Image: ubuntu-24.04", \
+    "Version: " + e["IMAGE_VERSION"], \
+    "Runner: " + e["RUNNER_VERSION"], \
+    "Included Software: " + repo + "/blob/" + e["IMAGE_REVISION"] + "/ubuntu-24.04/README.md", \
+    "Image Release: " + repo + "/pkgs/container/runner-ubuntu-24.04"]); \
+print(json.dumps([{"group": "Operating System", "detail": os_name}, {"group": "Runner Image", "detail": detail}], indent=2))' \
+       > /imagegeneration/imagedata.json \
+    && chmod 0644 /imagegeneration/imagedata.json
 
 # Static OCI metadata; dynamic labels (created/revision/version) are added by CI (docker/metadata-action).
 LABEL org.opencontainers.image.title="runner-ubuntu-24.04" \

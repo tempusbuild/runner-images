@@ -2,11 +2,11 @@
 # Minimal Ubuntu 24.04 runner image: just runner-agent + base (no Node/Docker CLI).
 # For workflows that need no toolchain — faster to pull, smaller surface.
 # Base pinned by digest; bumped on weekly rebuild.
-FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
+FROM ubuntu:24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3
 
-ARG RUNNER_VERSION=2.336.0
+ARG RUNNER_VERSION=2.337.0
 # SHA256 of the linux-x64 runner tarball (from release notes). Verify on bump. x64-specific.
-ARG RUNNER_SHA256=04cf0be1aff4c3ec3554466c39124ca250e3effd8873bb7e8d68535aa9505d5d
+ARG RUNNER_SHA256=70920811a4f8ad4328818682bca5c6469c1c942fab52448868071d0063816613
 ARG TARGETARCH=amd64
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -15,8 +15,25 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# A mirror mid-sync can serve an InRelease newer than its package indices ("File has unexpected
+# size ... Mirror sync in progress?"). apt's per-file Acquire::Retries re-fetches the same stale file,
+# so the whole update is retried after a pause instead. --error-on=any also turns network failures
+# (a warning with exit 0 by default) into a retried error. COPY (not RUN) keeps the script body out of
+# the layer history, which Dockle would otherwise read as a bare 'apt-get update'.
+COPY --chmod=0755 <<'EOF' /usr/local/sbin/apt-get-update-retry
+#!/bin/bash
+set -euo pipefail
+for attempt in 1 2 3 4 5; do
+  apt-get update --error-on=any && exit 0
+  [ "$attempt" -lt 5 ] || break
+  echo "apt-get update failed (attempt ${attempt}/5), retrying in 20s" >&2
+  sleep 20
+done
+exit 1
+EOF
+
 # hadolint ignore=DL3008
-RUN apt-get update \
+RUN apt-get-update-retry \
     && apt-get install -y --no-install-recommends ca-certificates curl git jq sudo tar \
     && rm -rf /var/lib/apt/lists/*
 
