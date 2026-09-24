@@ -15,8 +15,24 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# A mirror mid-sync can serve an InRelease newer than its package indices ("File has unexpected
+# size ... Mirror sync in progress?"). apt's per-file Acquire::Retries re-fetches the same stale file,
+# so the whole update is retried after a pause instead. --error-on=any also turns network failures
+# (a warning with exit 0 by default) into a retried error.
+RUN cat > /usr/local/sbin/apt-get-update-retry <<'EOF' && chmod 0755 /usr/local/sbin/apt-get-update-retry
+#!/bin/bash
+set -euo pipefail
+for attempt in 1 2 3 4 5; do
+  apt-get update --error-on=any && exit 0
+  [ "$attempt" -lt 5 ] || break
+  echo "apt-get update failed (attempt ${attempt}/5), retrying in 20s" >&2
+  sleep 20
+done
+exit 1
+EOF
+
 # hadolint ignore=DL3008
-RUN apt-get update \
+RUN apt-get-update-retry \
     && apt-get install -y --no-install-recommends ca-certificates curl git jq sudo tar \
     && rm -rf /var/lib/apt/lists/*
 

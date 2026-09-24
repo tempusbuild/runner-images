@@ -242,10 +242,26 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# A mirror mid-sync can serve an InRelease newer than its package indices ("File has unexpected
+# size ... Mirror sync in progress?"). apt's per-file Acquire::Retries re-fetches the same stale file,
+# so the whole update is retried after a pause instead. --error-on=any also turns network failures
+# (a warning with exit 0 by default) into a retried error.
+RUN cat > /usr/local/sbin/apt-get-update-retry <<'EOF' && chmod 0755 /usr/local/sbin/apt-get-update-retry
+#!/bin/bash
+set -euo pipefail
+for attempt in 1 2 3 4 5; do
+  apt-get update --error-on=any && exit 0
+  [ "$attempt" -lt 5 ] || break
+  echo "apt-get update failed (attempt ${attempt}/5), retrying in 20s" >&2
+  sleep 20
+done
+exit 1
+EOF
+
 # DL3008 (apt version pinning) is intentionally ignored on the Node/Docker/gh installs below: the
 # image pulls fresh security patches (weekly rebuild), pinning every version is impractical.
 COPY packages.txt /tmp/packages.txt
-RUN apt-get update \
+RUN apt-get-update-retry \
     && xargs -a /tmp/packages.txt apt-get install -y --no-install-recommends \
     && phpdismod -v 8.3 pcov \
     && rm -rf /var/lib/apt/lists/* /tmp/packages.txt
@@ -258,7 +274,7 @@ RUN apt-get update \
 RUN i=0; until add-apt-repository -y ppa:git-core/ppa; do \
       i=$((i+1)); [ "$i" -ge 5 ] && exit 1; echo "add-apt-repository retry ${i}"; sleep 5; \
     done \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
@@ -273,7 +289,7 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && chmod a+r /etc/apt/keyrings/nodesource.asc \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
        > /etc/apt/sources.list.d/nodesource.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g "npm@${NPM_VERSION}" \
     && corepack enable \
@@ -288,7 +304,7 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && chmod a+r /etc/apt/keyrings/docker.asc \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" \
        > /etc/apt/sources.list.d/docker.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends docker-ce-cli docker-buildx-plugin docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
 
@@ -298,7 +314,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o 
     && chmod a+r /etc/apt/keyrings/githubcli.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/githubcli.gpg] https://cli.github.com/packages stable main" \
        > /etc/apt/sources.list.d/github-cli.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
@@ -360,7 +376,7 @@ RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor
     && chmod a+r /etc/apt/keyrings/microsoft.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ noble main" \
        > /etc/apt/sources.list.d/azure-cli.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends azure-cli \
     && mkdir -p "${AZURE_EXTENSION_DIR}" \
     && az extension add -n azure-devops \
@@ -372,7 +388,7 @@ RUN curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dea
     && chmod a+r /etc/apt/keyrings/cloud.google.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
        > /etc/apt/sources.list.d/google-cloud-sdk.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends google-cloud-cli \
     && rm -rf /var/lib/apt/lists/*
 
@@ -382,7 +398,7 @@ RUN curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gp
     && chmod a+r /etc/apt/keyrings/adoptium.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb noble main" \
        > /etc/apt/sources.list.d/adoptium.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends temurin-8-jdk temurin-11-jdk temurin-17-jdk temurin-21-jdk temurin-25-jdk \
     && update-alternatives --set java /usr/lib/jvm/temurin-17-jdk-amd64/bin/java \
     && update-alternatives --set javac /usr/lib/jvm/temurin-17-jdk-amd64/bin/javac \
@@ -400,7 +416,7 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmo
     && chmod a+r /etc/apt/keyrings/pgdg.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
        > /etc/apt/sources.list.d/pgdg.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends postgresql-16 postgresql-client-16 mysql-server mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
@@ -411,7 +427,7 @@ RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor
     && chmod a+r /etc/apt/keyrings/google-chrome.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
        > /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends google-chrome-stable \
     && CHROME_VER="$(google-chrome-stable --version | grep -oE '[0-9]+(\.[0-9]+){3}')" \
     && curl -fsSL "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VER}/linux64/chromedriver-linux64.zip" -o /tmp/chromedriver.zip \
@@ -425,7 +441,7 @@ RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor
 # hadolint ignore=DL3008
 RUN echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/edge stable main" \
        > /etc/apt/sources.list.d/microsoft-edge.list \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends microsoft-edge-stable \
     && EDGE_VER="$(microsoft-edge-stable --version | grep -oE '[0-9]+(\.[0-9]+){3}')" \
     && curl -fsSL "https://msedgedriver.microsoft.com/${EDGE_VER}/edgedriver_linux64.zip" -o /tmp/edgedriver.zip \
@@ -443,7 +459,7 @@ RUN curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg -o /etc/apt
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" \
        > /etc/apt/sources.list.d/mozilla.list \
     && printf 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n' > /etc/apt/preferences.d/mozilla \
-    && apt-get update \
+    && apt-get-update-retry \
     && apt-get install -y --no-install-recommends firefox \
     && curl -fsSL "https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz" -o /tmp/geckodriver.tar.gz \
     && echo "${GECKODRIVER_SHA256}  /tmp/geckodriver.tar.gz" | sha256sum -c - \
