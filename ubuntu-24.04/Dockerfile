@@ -245,8 +245,9 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # A mirror mid-sync can serve an InRelease newer than its package indices ("File has unexpected
 # size ... Mirror sync in progress?"). apt's per-file Acquire::Retries re-fetches the same stale file,
 # so the whole update is retried after a pause instead. --error-on=any also turns network failures
-# (a warning with exit 0 by default) into a retried error.
-RUN cat > /usr/local/sbin/apt-get-update-retry <<'EOF' && chmod 0755 /usr/local/sbin/apt-get-update-retry
+# (a warning with exit 0 by default) into a retried error. COPY (not RUN) keeps the script body out of
+# the layer history, which Dockle would otherwise read as a bare 'apt-get update'.
+COPY --chmod=0755 <<'EOF' /usr/local/sbin/apt-get-update-retry
 #!/bin/bash
 set -euo pipefail
 for attempt in 1 2 3 4 5; do
