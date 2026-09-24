@@ -20,7 +20,7 @@ jobs:
     permissions:
       packages: write   # delete untagged container versions
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
         with:
           egress-policy: audit
       - uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f  # v1.2.2
@@ -35,4 +35,6 @@ jobs:
     if: failure() && github.event_name == 'schedule'
     permissions:
       issues: write   # failure issue (in notify-failure.yml)
-    uses: ./.github/workflows/notify-failure.yml
+    # ./ reusable-workflow calls resolve server-side at the caller's commit (not from the workspace);
+    # $/ is rejected by actionlint (v1.7.12), a required gate.
+    uses: ./.github/workflows/notify-failure.yml  # zizmor: ignore[self-repository]

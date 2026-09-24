@@ -86,7 +86,9 @@ the cryptographic anchor; provenance and SBOM bind to the same digest.
   widening the severity filter are not allowed. Each exception carries:
   - `id` — the CVE identifier;
   - `statement` — the rationale (why the fix is unavailable/inapplicable for now);
-  - `expired_at` — the date after which trivy stops ignoring the CVE → forced re-triage.
+  - `expired_at` — the date after which trivy stops ignoring the CVE → forced re-triage;
+  - `purls` (where the finding is package-specific) — scopes the exception to that package, so the
+    same CVE on any other package still fails the gate.
 - **Review**: exceptions and unfixed CVEs are re-checked on every weekly rebuild. An expired
   `expired_at` fails the gate again until the decision is updated (a fix or an extended rationale).
 

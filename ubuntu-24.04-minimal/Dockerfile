@@ -2,11 +2,11 @@
 # Minimal Ubuntu 24.04 runner image: just runner-agent + base (no Node/Docker CLI).
 # For workflows that need no toolchain — faster to pull, smaller surface.
 # Base pinned by digest; bumped on weekly rebuild.
-FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
+FROM ubuntu:24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3
 
-ARG RUNNER_VERSION=2.336.0
+ARG RUNNER_VERSION=2.337.0
 # SHA256 of the linux-x64 runner tarball (from release notes). Verify on bump. x64-specific.
-ARG RUNNER_SHA256=04cf0be1aff4c3ec3554466c39124ca250e3effd8873bb7e8d68535aa9505d5d
+ARG RUNNER_SHA256=70920811a4f8ad4328818682bca5c6469c1c942fab52448868071d0063816613
 ARG TARGETARCH=amd64
 
 ENV DEBIAN_FRONTEND=noninteractive \

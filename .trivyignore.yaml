@@ -1,10 +1,16 @@
 # Documented trivy exceptions — policy and required fields are described in SECURITY.md.
 vulnerabilities:
-  # Firefox is installed from the Mozilla apt repo (current stable, bundling patched expat). Trivy
-  # maps these 2022 expat CVEs to Ubuntu's snap-transitional firefox, which this image does not use.
+  # Firefox comes from the Mozilla apt repo and bundles its own expat (Firefox 156 vendors expat
+  # 2.8.2; these CVEs were fixed in 2.4.5). Ubuntu's fixed version for source "firefox" is the snap
+  # transitional package 1:1snap1-0ubuntu1, whose epoch sorts above every Mozilla version, so the
+  # match is a version-comparison artifact. Scoped by purl so the system libexpat1 stays gated.
   - id: CVE-2022-25235
-    statement: "FP: Firefox from the Mozilla apt repo bundles patched expat; Trivy's fix maps to the unused Ubuntu snap firefox."
-    expired_at: 2026-09-15
+    purls:
+      - "pkg:deb/ubuntu/firefox"
+    statement: "FP: Mozilla-repo Firefox bundles fixed expat (>=2.4.5); Trivy's fix is the epoch-1 Ubuntu snap transitional package."
+    expired_at: 2026-12-15
   - id: CVE-2022-25236
-    statement: "FP: Firefox from the Mozilla apt repo bundles patched expat; Trivy's fix maps to the unused Ubuntu snap firefox."
-    expired_at: 2026-09-15
+    purls:
+      - "pkg:deb/ubuntu/firefox"
+    statement: "FP: Mozilla-repo Firefox bundles fixed expat (>=2.4.5); Trivy's fix is the epoch-1 Ubuntu snap transitional package."
+    expired_at: 2026-12-15

@@ -26,7 +26,7 @@ jobs:
       id-token: write       # cosign keyless (Fulcio OIDC) + Sigstore attestations
       attestations: write   # GitHub artifact attestations (SBOM + provenance)
     steps:
-      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c  # v2.21.0
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
         with:
           egress-policy: audit   # build an egress baseline first; switch to block once stable
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -42,7 +42,7 @@ jobs:
             /usr/lib/jvm /opt/hostedtoolcache "${AGENT_TOOLSDIRECTORY:-}" || true
           sudo docker image prune -af || true
           df -h /
-      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e  # v4.3.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f  # v4.6.0
         with:
@@ -62,11 +62,15 @@ jobs:
       #    the weekly rebuild must pull fresh apt patches, and the signed artifact must not be
       #    assembled from a poisonable cache.
       - id: build
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a  # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
         with:
           context: ubuntu-24.04
           outputs: type=image,name=ghcr.io/tempusbuild/runner-ubuntu-24.04,push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.meta.outputs.labels }}
+          # meta version = highest-priority tag: the raw date tag (200) outranks type=sha (100).
+          build-args: |
+            IMAGE_VERSION=${{ steps.meta.outputs.version }}
+            IMAGE_REVISION=${{ github.sha }}
           # No inline BuildKit SBOM: the action archive cache pushes the SPDX blob past BuildKit's
           # 40 MiB attestation cap. The SBOM comes from the cosign-attached CycloneDX below instead.
           provenance: mode=max    # SLSA provenance attestation (targets Build L3)
@@ -137,7 +141,7 @@ jobs:
             "${IMAGE}@${DIGEST}"
 
       # 6) SBOM, attached to the digest as a cosign attestation.
-      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
+      - uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26  # v0.24.2
         env:
           SYFT_FILE_METADATA_SELECTION: none
           # Cap syft's heap so it GCs instead of OOM-killing.
