@@ -3,6 +3,14 @@ name: build
 on:
   push:
     branches: [main]
+    # Publish (paid larger runner, new digest) only when the published image or its gates change;
+    # weekly-rebuild (workflow_call) and workflow_dispatch are unaffected by this filter.
+    paths:
+      - ubuntu-24.04/Dockerfile
+      - ubuntu-24.04/packages.txt
+      - tests/**
+      - .trivyignore.yaml
+      - .github/workflows/build.yml
   workflow_dispatch:
   workflow_call:
 
