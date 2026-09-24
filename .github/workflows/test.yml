@@ -11,8 +11,9 @@ permissions:
   contents: read
 
 jobs:
-  # Skip the build/scan steps on PRs that touch no image-affecting file (docs/config-only). The jobs
-  # still run and report green (steps skip, not jobs), so required checks stay satisfied.
+  # Skip the build/scan work on PRs that touch no image-affecting file (docs/config-only). The minimal
+  # job skips steps; the full job is skipped at job level (a skipped job counts as passed for required
+  # checks) so the paid larger runner is never started for nothing.
   changes:
     name: Detect image changes
     runs-on: ubuntu-latest
@@ -65,6 +66,10 @@ jobs:
   build-test:
     name: Build and test (full)
     needs: changes
+    if: needs.changes.outputs.image == 'true'
+    # Paid larger runner: each run waits for a maintainer's approval (required reviewer on the
+    # full-build environment), so automated PRs don't start it on their own.
+    environment: full-build
     # Larger runner: the full image + buildkit + scanners exceed the standard runner's disk.
     runs-on: ubuntu-2404-8core
     steps:
@@ -77,7 +82,6 @@ jobs:
       # The full-parity image is large; reclaim the runner's preinstalled toolchains so the
       # docker build does not run the host out of disk.
       - name: Free disk space
-        if: needs.changes.outputs.image == 'true'
         run: |
           set -euo pipefail
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/lib/android \
@@ -86,19 +90,16 @@ jobs:
           sudo docker image prune -af || true
           df -h /
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
-        if: needs.changes.outputs.image == 'true'
       # No GHA layer cache here: the full image (~36 GiB) exceeds the 10 GB per-repo cache limit,
       # and staging mode=max compressed diffs exhausts the build disk. Like the release build
       # (build.yml), this builds uncached.
       - name: Build image
-        if: needs.changes.outputs.image == 'true'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
         with:
           context: ubuntu-24.04
           load: true
           tags: tempusbuild/runner-ubuntu-24.04:pr
       - name: Image size gate
-        if: needs.changes.outputs.image == 'true'
         env:
           MAX_BYTES: "48000000000"   # budget; CI-measured ~41.6 GiB (full parity + full Android matrix + native-build dev libs)
         run: |
@@ -108,13 +109,11 @@ jobs:
           [ "$size" -le "$MAX_BYTES" ] || { echo "image size $size exceeds budget $MAX_BYTES" >&2; exit 1; }
       # Buildkit retains the build layers after load; drop them so the daemon-read scanners have scratch.
       - name: Reclaim build cache
-        if: needs.changes.outputs.image == 'true'
         run: docker buildx prune --all --force
       # DKL-DI-0001 (sudo) is ignored: passwordless sudo is the runner-image contract.
       # CIS-DI-0010 stays on; the -ae/-af below accept names it false-flags inside bundled
       # third-party payloads (test fixtures + library source), not real credentials.
       - name: Dockle (CIS image lint)
-        if: needs.changes.outputs.image == 'true'
         run: |
           set -euo pipefail
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
@@ -123,21 +122,18 @@ jobs:
             -ae pcap -af id_ecdsa -af database.yml -af settings.py \
             tempusbuild/runner-ubuntu-24.04:pr
       - name: Dive (layer efficiency)
-        if: needs.changes.outputs.image == 'true'
         run: |
           set -euo pipefail
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -e CI=true \
             wagoodman/dive:v0.13.1@sha256:f1886e6c32c094fc41a623c1989f5cb3e48aa766da5f0be233f911fc1d85ce10 \
             --ci tempusbuild/runner-ubuntu-24.04:pr
       - name: Smoke tests
-        if: needs.changes.outputs.image == 'true'
         run: |
           docker run --rm -v "$PWD/tests:/tests:ro" tempusbuild/runner-ubuntu-24.04:pr \
             bash -c 'rc=0; for t in /tests/*.sh; do echo "== $t =="; bash "$t" || rc=1; done; exit $rc'
       # OS-scoped gate (scanners=vuln, vuln-type=os): secrets via gitleaks + Dockle; bundled-tool
       # library CVEs tracked via pinned versions, not gated — full rationale in SECURITY.md.
       - name: Trivy scan
-        if: needs.changes.outputs.image == 'true'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
         env:
           TRIVY_SKIP_VERSION_CHECK: "true"
