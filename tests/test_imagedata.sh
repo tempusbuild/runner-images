@@ -6,7 +6,9 @@ set -euo pipefail
 f=/imagegeneration/imagedata.json
 [ -r "$f" ] || { echo "MISSING/unreadable: $f" >&2; exit 1; }
 
-runner_version="$(/home/runner/bin/Runner.Listener --version)"
+# The image sets ACTIONS_RUNNER_PRINT_LOG_TO_STDOUT (ARC), which prefixes --version with trace logs.
+runner_version="$(env -u ACTIONS_RUNNER_PRINT_LOG_TO_STDOUT /home/runner/bin/Runner.Listener --version | tail -n1)"
+[[ "$runner_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "unexpected runner --version output: ${runner_version}" >&2; exit 1; }
 
 IMAGEDATA="$f" RUNNER_VERSION="$runner_version" python3 - <<'EOF'
 import json, os, re, sys
