@@ -206,7 +206,7 @@ ARG ANDROID_CMAKE2_VERSION=4.1.2
 
 # Environment managers + AWS SAM. Homebrew/vcpkg are pinned by git tag; Miniconda/SAM by SHA256.
 # MINICONDA_VERSION is bumped manually (no Renovate datasource for its pyXXX_NN.N.N-N installer name).
-ARG HOMEBREW_VERSION=6.0.22
+ARG HOMEBREW_VERSION=7.0.6
 ARG VCPKG_VERSION=2026.07.29
 ARG MINICONDA_VERSION=py314_26.7.1-1
 ARG MINICONDA_SHA256=e8b25b92b262499141c5bd57a98d3c008024185fa951494b9cd9b6d94e72338b
