@@ -13,7 +13,7 @@ ARG ACTION_ARCHIVE_CACHE_VERSION=1.0.55
 ARG ACTION_ARCHIVE_CACHE_SHA256=ac2595a79073020b9635229db191a1141e5dfaff2f00b7bf20d69b7bcb203f7a
 ARG NODE_MAJOR=22
 # Fresh npm: npm's bundled deps from NodeSource pull in CVEs.
-ARG NPM_VERSION=11.20.0
+ARG NPM_VERSION=12.1.0
 ARG TARGETARCH=amd64
 
 # Python toolcache (matches setup-python: same actions/python-versions builds, offline cache hit).
