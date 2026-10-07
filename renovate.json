@@ -418,6 +418,16 @@
       "versioningTemplate": "semver"
     },
     {
+      "description": "ARG NINJA_VERSION → ninja-build/ninja. Does NOT bump NINJA_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG NINJA_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "ninja-build/ninja",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$",
+      "versioningTemplate": "semver"
+    },
+    {
       "description": "ARG ECR_HELPER_VERSION → awslabs/amazon-ecr-credential-helper. Does NOT bump ECR_HELPER_SHA256.",
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)Dockerfile$/"],

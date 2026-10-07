@@ -38,7 +38,9 @@ just ci      # everything CI runs: lint + build/test/scan of both images
 
 ## CI
 
-- `test` — on PR: lint + build (full + minimal) + size gate + smoke + trivy.
+- `test` — on PR: lint + minimal image build + size gate + Dockle + Dive + smoke + trivy.
+- `full-test` — manual, before merging image changes: full image build + size report + Dockle +
+  Dive + smoke + trivy.
 - `build` — on push to `main` / manual: build → smoke + trivy scan by digest → tags →
   **cosign sign + SBOM + SLSA provenance attestations**.
 - `weekly-rebuild` — weekly: rebuild for security patches + re-sign.

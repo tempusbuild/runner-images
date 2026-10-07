@@ -100,6 +100,9 @@ ARG PIPX_VERSION=1.16.7
 # zstd built from source + SHA256 (apt zstd lags; upstream ships no prebuilt linux binary).
 ARG ZSTD_VERSION=1.5.7
 ARG ZSTD_SHA256=eb33e51f49a15e023950cd7825ca74a4a2b43db8354825ac24fc1b7ee09e6fa3
+# Ninja from its GitHub release (as ubuntu-latest); apt ninja-build stays for meson but is shadowed.
+ARG NINJA_VERSION=1.13.2
+ARG NINJA_SHA256=5749cbc4e668273514150a80e387a957f933c6ed3f5f11e03fb30955e2bbead6
 
 # kubectl / Helm pinned binaries + SHA256. Helm stays on 3.x (ubuntu-latest parity), not v4 (major).
 ARG KUBECTL_VERSION=1.37.1
@@ -157,7 +160,7 @@ ARG YARN_VERSION=1.22.22
 ARG NEWMAN_VERSION=6.2.2
 ARG PARCEL_VERSION=2.16.4
 ARG LERNA_VERSION=10.0.1
-ARG TYPESCRIPT_VERSION=6.0.3
+ARG TYPESCRIPT_VERSION=7.0.2
 ARG WEBPACK_VERSION=5.111.1
 ARG WEBPACK_CLI_VERSION=7.2.3
 ARG GRUNT_VERSION=1.6.3
@@ -437,6 +440,12 @@ RUN curl -fsSL "https://github.com/facebook/zstd/releases/download/v${ZSTD_VERSI
     && make -C "/tmp/zstd-${ZSTD_VERSION}/programs" -j"$(nproc)" zstd \
     && install -m 0755 "/tmp/zstd-${ZSTD_VERSION}/programs/zstd" /usr/local/bin/zstd \
     && rm -rf /tmp/zstd.tar.gz "/tmp/zstd-${ZSTD_VERSION}"
+
+RUN curl -fsSL "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/ninja-linux.zip" -o /tmp/ninja.zip \
+    && echo "${NINJA_SHA256}  /tmp/ninja.zip" | sha256sum -c - \
+    && unzip -q /tmp/ninja.zip -d /usr/local/bin \
+    && chmod 0755 /usr/local/bin/ninja \
+    && rm -f /tmp/ninja.zip
 
 RUN curl -fsSL "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl \
     && echo "${KUBECTL_SHA256}  /usr/local/bin/kubectl" | sha256sum -c - \
@@ -947,7 +956,7 @@ RUN set -euo pipefail; \
     components=( "extras;android;m2repository" "extras;google;m2repository" "extras;google;google_play_services" \
                  "cmake;${ANDROID_CMAKE1_VERSION}" "cmake;${ANDROID_CMAKE2_VERSION}" "platform-tools" \
                  "ndk;${ANDROID_NDK_VERSION}" "ndk;${ANDROID_NDK_28_VERSION}" "ndk;${ANDROID_NDK_LATEST_VERSION}" ); \
-    for p in $(printf '%s\n' "$listing" | grep -oE 'platforms;android-[0-9]+(-ext[0-9]+)?([[:space:]|]|$)' | grep -oE 'platforms;android-[0-9]+(-ext[0-9]+)?' | sort -u); do \
+    for p in $(printf '%s\n' "$listing" | sed -n '/Available Packages:/,/^$/p' | grep 'platforms;android-[0-9]' | cut -d'|' -f1 | tr -d ' ' | sort -u); do \
       v="$(printf '%s' "$p" | grep -oE '[0-9.]+' | head -n1)"; \
       if [ "$(printf '%s\n%s\n' "${ANDROID_PLATFORM_MIN}" "$v" | sort -V | head -n1)" = "${ANDROID_PLATFORM_MIN}" ]; then components+=("$p"); fi; \
     done; \
