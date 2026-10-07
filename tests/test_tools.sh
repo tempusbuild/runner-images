@@ -8,7 +8,7 @@ for tool in git git-lfs jq curl wget ssh rsync tar unzip zip zstd sqlite3 cmake 
   echo "ok: $tool"
 done
 
-# Pinned/extra CLIs not from apt: yq (pinned binary), pipx (pip), corepack-managed JS managers.
+# Pinned/extra CLIs not from apt: yq (pinned binary), pipx (pip), yarn 1.x (npm), pnpm (corepack).
 for tool in yq yarn pnpm pipx; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
   echo "ok: $tool"
@@ -16,7 +16,7 @@ done
 
 # Pinned-binary versions must match the Dockerfile pins (parity with ubuntu-latest).
 cmake --version | grep -q '3.31.12' || { echo "cmake != 3.31.12: $(cmake --version | head -1)" >&2; fails=$((fails+1)); }
-cmake4 --version | grep -q '4.4.2' || { echo "cmake4 != 4.4.2: $(cmake4 --version | head -1)" >&2; fails=$((fails+1)); }
+cmake4 --version | grep -q '4.4.4' || { echo "cmake4 != 4.4.4: $(cmake4 --version | head -1)" >&2; fails=$((fails+1)); }
 git-lfs version | grep -q '3.8.0' || { echo "git-lfs != 3.8.0: $(git-lfs version)" >&2; fails=$((fails+1)); }
 pipx --version | grep -q '1.16.7' || { echo "pipx != 1.16.7: $(pipx --version)" >&2; fails=$((fails+1)); }
 kubectl version --client 2>/dev/null | grep -q 'v1.37.1' || { echo "kubectl != 1.37.1: $(kubectl version --client 2>/dev/null | head -1)" >&2; fails=$((fails+1)); }
@@ -54,19 +54,13 @@ for tool in tsc webpack webpack-cli grunt gulp; do
 done
 echo "ok: npm globals (tsc/webpack/webpack-cli/grunt/gulp)"
 
-# PHP stack + misc tools (Pulumi, n, nvm, git-ftp, Sphinx search).
-for tool in php composer phpunit git-ftp pulumi n; do
+# Misc tools (Pulumi, n, nvm, git-ftp, Sphinx search); the PHP stack is covered by test_php.sh.
+for tool in git-ftp pulumi n; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
 done
-php --version | grep -q 'PHP 8.3' || { echo "php != 8.3: $(php --version | head -1)" >&2; fails=$((fails+1)); }
-# Xdebug + PCOV are both installed; only Xdebug is enabled (parity with ubuntu-latest):
-# pcov stays in mods-available (installed) but is unlinked from conf.d (not loaded).
-php -m | grep -qi xdebug || { echo "MISSING: xdebug not enabled" >&2; fails=$((fails+1)); }
-[ -f /etc/php/8.3/mods-available/pcov.ini ] || { echo "MISSING: pcov not installed" >&2; fails=$((fails+1)); }
-! php -m | grep -qi pcov || { echo "pcov should be installed but disabled" >&2; fails=$((fails+1)); }
 { command -v searchd >/dev/null || command -v indexer >/dev/null; } || { echo "MISSING sphinxsearch" >&2; fails=$((fails+1)); }
 [ -s "${NVM_DIR:-/usr/local/nvm}/nvm.sh" ] || { echo "MISSING nvm at ${NVM_DIR:-unset}" >&2; fails=$((fails+1)); }
-echo "ok: php 8.3 + composer/phpunit, git-ftp, pulumi, n, nvm, sphinxsearch"
+echo "ok: git-ftp, pulumi, n, nvm, sphinxsearch"
 
 for tool in apache2 nginx; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
@@ -178,6 +172,76 @@ shopt -s nullglob
 archive_bundles=(/opt/actionarchivecache/actions_cache/*.tar.gz)
 [ "${#archive_bundles[@]}" -gt 0 ] || { echo "action archive cache empty at /opt/actionarchivecache" >&2; fails=$((fails+1)); }
 echo "ok: action archive cache (${#archive_bundles[@]} bundles)"
+
+# ubuntu-latest parity extras.
+yarn --version | grep -qx '1.22.22' || { echo "yarn != 1.22.22: $(yarn --version)" >&2; fails=$((fails+1)); }
+[ "$(npm config get prefix)" = /usr/local ] || { echo "npm prefix != /usr/local: $(npm config get prefix)" >&2; fails=$((fails+1)); }
+# `npm i -g` as runner without sudo: install a local package offline, run its bin, remove it.
+npmt="$(mktemp -d)"
+printf '{"name":"tempus-npm-smoke","version":"1.0.0","bin":{"tempus-npm-smoke":"cli.js"}}\n' > "$npmt/package.json"
+printf '#!/usr/bin/env node\nconsole.log("ok");\n' > "$npmt/cli.js"
+if npm install -g --offline --no-audit --no-fund "$npmt" >/dev/null 2>&1 && [ "$(tempus-npm-smoke)" = ok ]; then
+  echo "ok: npm -g as $(id -un) without sudo"
+else
+  echo "npm -g as $(id -un) failed" >&2; fails=$((fails+1))
+fi
+npm uninstall -g tempus-npm-smoke >/dev/null 2>&1 || true
+rm -rf "$npmt"
+
+[ -w "${PIPX_HOME:-/nonexistent}" ] && [ -w "${PIPX_BIN_DIR:-/nonexistent}" ] \
+  || { echo "PIPX_HOME/PIPX_BIN_DIR unset or not writable: ${PIPX_HOME:-} ${PIPX_BIN_DIR:-}" >&2; fails=$((fails+1)); }
+[ "$(command -v ansible)" = "${PIPX_BIN_DIR:-}/ansible" ] || { echo "ansible not from PIPX_BIN_DIR: $(command -v ansible)" >&2; fails=$((fails+1)); }
+echo "ok: pipx shared home/bin (${PIPX_HOME:-}, ${PIPX_BIN_DIR:-}) writable"
+
+for t in clang-format clang-tidy run-clang-tidy; do
+  readlink -f "$(command -v "$t")" | grep -q -- '-18' || { echo "$t is not clang 18: $(readlink -f "$(command -v "$t")")" >&2; fails=$((fails+1)); }
+done
+# lldb only for 18: noble's python3-lldb-N packages conflict with each other (ubuntu-latest's
+# sequential installs leave only the last one, 18, too).
+for tool in lldb-18 ld.lld-16 ld.lld-17 ld.lld-18; do
+  command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
+done
+echo "ok: clang 18 default for clang-format/clang-tidy/run-clang-tidy; lldb 18; lld 16/17/18"
+
+for pkg in gnupg2 libicu70 ssh ant-optional; do
+  dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q 'install ok installed' || { echo "MISSING package: $pkg" >&2; fails=$((fails+1)); }
+done
+[ -x /usr/sbin/sshd ] || { echo "MISSING: sshd" >&2; fails=$((fails+1)); }
+compgen -G '/etc/ssh/ssh_host_*_key' >/dev/null && { echo "SSH host private keys baked into the image" >&2; fails=$((fails+1)); }
+[ "$(command -v conda)" = /usr/bin/conda ] || { echo "conda not at /usr/bin/conda: $(command -v conda)" >&2; fails=$((fails+1)); }
+echo "ok: gnupg2, libicu70, ssh (no host keys), ant-optional, conda symlink"
+
+grep -q '^github.com ssh-ed25519 ' /etc/ssh/ssh_known_hosts || { echo "MISSING github.com in ssh_known_hosts" >&2; fails=$((fails+1)); }
+grep -q '^ssh.dev.azure.com ssh-rsa ' /etc/ssh/ssh_known_hosts || { echo "MISSING ssh.dev.azure.com in ssh_known_hosts" >&2; fails=$((fails+1)); }
+git config --system --get-all safe.directory | grep -qx '\*' || { echo "git safe.directory=* not set" >&2; fails=$((fails+1)); }
+echo "ok: system ssh_known_hosts (github.com, ssh.dev.azure.com) + git safe.directory"
+
+[ "$(command -v docker-credential-ecr-login)" = /usr/bin/docker-credential-ecr-login ] \
+  || { echo "ecr helper not at /usr/bin: $(command -v docker-credential-ecr-login)" >&2; fails=$((fails+1)); }
+docker-credential-ecr-login version 2>&1 | grep -q '0.12.0' || { echo "ecr helper != 0.12.0: $(docker-credential-ecr-login version 2>&1)" >&2; fails=$((fails+1)); }
+echo "ok: amazon-ecr-credential-helper 0.12.0"
+
+for b in chromium chromium-browser; do
+  [ "$(readlink -f "$(command -v "$b")")" = /usr/local/share/chromium/chrome-linux/chrome ] || { echo "$b link bad" >&2; fails=$((fails+1)); }
+done
+chromium --version >/dev/null || { echo "chromium fails to launch" >&2; fails=$((fails+1)); }
+[ -x "${CHROME_BIN:-/nonexistent}" ] || { echo "CHROME_BIN bad: ${CHROME_BIN:-unset}" >&2; fails=$((fails+1)); }
+echo "ok: chromium snapshot + CHROME_BIN"
+
+# Env contract (ubuntu-latest /etc/environment).
+for v in 1_25 1_26; do
+  var="GOROOT_${v}_X64"; [ -x "${!var:-/nonexistent}/bin/go" ] || { echo "$var bad: ${!var:-unset}" >&2; fails=$((fails+1)); }
+done
+[ "${ACCEPT_EULA:-}" = Y ] || { echo "ACCEPT_EULA != Y" >&2; fails=$((fails+1)); }
+[ "${HOMEBREW_NO_AUTO_UPDATE:-}" = 1 ] && [ "${HOMEBREW_CLEANUP_PERIODIC_FULL_DAYS:-}" = 3650 ] || { echo "HOMEBREW_* env unset" >&2; fails=$((fails+1)); }
+[ "${BOOTSTRAP_HASKELL_NONINTERACTIVE:-}" = 1 ] || { echo "BOOTSTRAP_HASKELL_NONINTERACTIVE unset" >&2; fails=$((fails+1)); }
+[[ "${USE_BAZEL_FALLBACK_VERSION:-}" == silent:* ]] || { echo "USE_BAZEL_FALLBACK_VERSION bad: ${USE_BAZEL_FALLBACK_VERSION:-unset}" >&2; fails=$((fails+1)); }
+[ -x "${SWIFT_PATH:-/nonexistent}/swift" ] || { echo "SWIFT_PATH bad: ${SWIFT_PATH:-unset}" >&2; fails=$((fails+1)); }
+[ -e /usr/local/lib/libsourcekitdInProc.so ] || { echo "MISSING /usr/local/lib/libsourcekitdInProc.so" >&2; fails=$((fails+1)); }
+[ "${XDG_CONFIG_HOME:-}" = "$HOME/.config" ] && [ -w "$XDG_CONFIG_HOME" ] && [ -d "$XDG_CONFIG_HOME/configstore" ] \
+  || { echo "XDG_CONFIG_HOME bad: ${XDG_CONFIG_HOME:-unset}" >&2; fails=$((fails+1)); }
+compgen -G "${RUNNER_TOOL_CACHE}/CodeQL/*/x64/pinned-version" >/dev/null || { echo "MISSING CodeQL pinned-version marker" >&2; fails=$((fails+1)); }
+echo "ok: env contract (GOROOT_*_X64, ACCEPT_EULA, HOMEBREW_*, SWIFT_PATH, XDG_CONFIG_HOME, bazel fallback) + CodeQL marker"
 
 [ "$fails" -eq 0 ] || { echo "SMOKE FAILURES (tools): $fails" >&2; exit 1; }
 echo "OK: base tools present"

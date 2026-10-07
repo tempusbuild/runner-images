@@ -1,12 +1,12 @@
-# syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
+# syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # Minimal Ubuntu 24.04 runner image: just runner-agent + base (no Node/Docker CLI).
 # For workflows that need no toolchain — faster to pull, smaller surface.
 # Base pinned by digest; bumped on weekly rebuild.
-FROM ubuntu:24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3
+FROM ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55
 
-ARG RUNNER_VERSION=2.337.0
+ARG RUNNER_VERSION=2.338.0
 # SHA256 of the linux-x64 runner tarball (from release notes). Verify on bump. x64-specific.
-ARG RUNNER_SHA256=70920811a4f8ad4328818682bca5c6469c1c942fab52448868071d0063816613
+ARG RUNNER_SHA256=af4b794c1bc41d73d40535e3fe092a39f9679cd8d965954c2aca25a05ca41d32
 ARG TARGETARCH=amd64
 
 ENV DEBIAN_FRONTEND=noninteractive \

@@ -1,33 +1,36 @@
-# syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
+# syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # Ubuntu 24.04 runner image for ARC gha-runner-scale-set (label tempus-ubuntu-24.04-4core):
 # runner-agent + base CI toolchain.
 # Base pinned by digest; bump on weekly rebuild via `docker buildx imagetools inspect`.
-FROM ubuntu:24.04@sha256:008173c23f95b170204355c12626cb5a965d779a7e1283b09e9cffbb1bf33ca3
+FROM ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55
 
-ARG RUNNER_VERSION=2.337.0
+ARG RUNNER_VERSION=2.338.0
 # SHA256 of the linux-x64 runner tarball (from release notes); recompute on version bump. x64-only.
-ARG RUNNER_SHA256=70920811a4f8ad4328818682bca5c6469c1c942fab52448868071d0063816613
+ARG RUNNER_SHA256=af4b794c1bc41d73d40535e3fe092a39f9679cd8d965954c2aca25a05ca41d32
 # Action archive cache (parity with ubuntu-latest install-actions-cache.sh): prebundled tarballs of
 # common actions the runner resolves offline. Pinned tarball + SHA256 (recompute on bump). ~273 MB.
-ARG ACTION_ARCHIVE_CACHE_VERSION=1.0.55
-ARG ACTION_ARCHIVE_CACHE_SHA256=ac2595a79073020b9635229db191a1141e5dfaff2f00b7bf20d69b7bcb203f7a
+ARG ACTION_ARCHIVE_CACHE_VERSION=1.0.58
+ARG ACTION_ARCHIVE_CACHE_SHA256=f5e80269a8357e3509a7e1c5eb146c5743fb02b3b569e96c967bf6606f0ddbf1
 ARG NODE_MAJOR=22
 # Fresh npm: npm's bundled deps from NodeSource pull in CVEs.
-ARG NPM_VERSION=11.20.0
+ARG NPM_VERSION=11.21.0
 ARG TARGETARCH=amd64
+# libicu70 from the jammy pool (as ubuntu-latest's configure-dpkg.sh) for prebuilt binaries linked
+# against ICU 70; SHA512 is the one ubuntu-latest pins.
+ARG LIBICU70_SHA512=a6315482d93606e375c272718d2458870b95e4ed4b672ea8640cf7bc2d2c2f41aea13b798b1e417e1ffc472a90c6aad150d3d293aa9bddec48e39106e4042807
 
 # Python toolcache (matches setup-python: same actions/python-versions builds, offline cache hit).
 # Exact patches and their SHA256 are pinned (the manifest publishes no hashes) — verify on bump.
-ARG PYTHON_310=3.10.21
-ARG PYTHON_311=3.11.16
-ARG PYTHON_312=3.12.14
-ARG PYTHON_313=3.13.15
-ARG PYTHON_314=3.14.7
-ARG PYTHON_310_SHA256=3ae6d012a8c2cb41bf7a2957a99f1d6d329a264a727053e71edb76b1cfda6f52
-ARG PYTHON_311_SHA256=07b61e35f30861939ff95314297921de8f57cd48f85bb18d777651b3ea45f2ee
-ARG PYTHON_312_SHA256=5a03168292516f6dd6dcf630f4bf5369b108abd7c699a7e1db37f1e622257fff
-ARG PYTHON_313_SHA256=4e544242f8a4ef647a6f511b67f9b00eefc9ef366644e3c40a27a6eff709ae2b
-ARG PYTHON_314_SHA256=76d5ddab6d2dd89a39c06220f6efeda486a48ed481eae97bfc596c74ac3623db
+ARG PYTHON_310=3.10.22
+ARG PYTHON_311=3.11.17
+ARG PYTHON_312=3.12.15
+ARG PYTHON_313=3.13.16
+ARG PYTHON_314=3.14.8
+ARG PYTHON_310_SHA256=4c96c0e9380150d436c38be322bafa04a5632db7eb2def147b7553ed7e88fd16
+ARG PYTHON_311_SHA256=ae713815fe406a06f1691856f697a0b1e58b3e986f44e62f0cd0bca2424f1aac
+ARG PYTHON_312_SHA256=fcb672b0437c2d8df5565b7cc250b2b0d7455e2b8d6a4a107cfa6f2efe4f7ed8
+ARG PYTHON_313_SHA256=d6f5f504043400592e9dcf368ba262c64d998608646cc22281b5a75beecbc872
+ARG PYTHON_314_SHA256=fa74abc70a55c10f6631967784878704eef81bbde9b8ec27469534f6ba997cb3
 # 3.10/3.11 bundle an old setuptools with vulnerable vendored copies (CVE-2026-23949/-24049) —
 # upgrade to the fixed version rather than ignoring (3.12+ bundle no setuptools, PEP 632).
 ARG SETUPTOOLS_VERSION=83.0.0
@@ -61,33 +64,34 @@ ARG RUBY_40_SHA256=a11b84469b76a38175bce72176f66389fc05b87a3e7545329e8685b01dcb2
 
 # PyPy toolcache (matches actions/setup-pypy): dir named by the Python-compat version; PyPy build in
 # the filename. Tarball symlinks (python3 -> pypy3) are already present. Bumped manually (the
-# python<->pypy version pairing has no clean Renovate datasource).
+# python<->pypy version pairing has no clean Renovate datasource). *_FILE includes the archive
+# extension: PyPy 8 ships .tar.gz only, older lines .tar.bz2; tar auto-detects the compression.
 ARG PYPY_39=3.9.19
 ARG PYPY_310=3.10.16
-ARG PYPY_311=3.11.15
-ARG PYPY_39_FILE=pypy3.9-v7.3.16-linux64
-ARG PYPY_310_FILE=pypy3.10-v7.3.19-linux64
-ARG PYPY_311_FILE=pypy3.11-v7.3.23-linux64
+ARG PYPY_311=3.11.16
+ARG PYPY_39_FILE=pypy3.9-v7.3.16-linux64.tar.bz2
+ARG PYPY_310_FILE=pypy3.10-v7.3.19-linux64.tar.bz2
+ARG PYPY_311_FILE=pypy3.11-v8.0.0-linux64.tar.gz
 ARG PYPY_39_SHA256=16f9c5b808c848516e742986e826b833cdbeda09ad8764e8704595adbe791b23
 ARG PYPY_310_SHA256=c73ac2cc2380ac9227fd297482bf2a3e17a80618ba46db7544d535515321ec1e
-ARG PYPY_311_SHA256=16f9f56e82d1f4ec95a324c1a8cacfd78afc7f0656c0a809a18725ef4391453a
+ARG PYPY_311_SHA256=66a3657e9ddf2d62ead44d3a44b9ea2f6e7dbf28d812554cae5c982a0585bfa5
 
 # Rust via pinned rustup-init (not `curl | sh`): tarball by URL + SHA256 from <url>.sha256.
 # default profile = rustc+cargo+rust-std+rustfmt+clippy. Exact toolchain pin for reproducibility.
 ARG RUSTUP_VERSION=1.29.1
-ARG RUST_VERSION=1.98.1
+ARG RUST_VERSION=1.99.0
 ARG RUSTUP_SHA256=dda7234360b7f578ca8b0ddcb80145646fa61a67c1720a5abc7051b35c9fcb71
 
 # yq (mikefarah) pinned binary + SHA256 — parity with ubuntu-latest (jq comes from apt; yq does not).
-ARG YQ_VERSION=4.53.6
-ARG YQ_SHA256=c5f056448f973ae7d39b5401949648a78f2dc1947d6a8eb65be60d5c504b9385
+ARG YQ_VERSION=4.54.1
+ARG YQ_SHA256=8e34fc298390875de416e6a4afcb8cabeceb25d9aa8506c1a2f9353cf702ea5f
 
 # cmake / git-lfs pinned binaries + SHA256 — version parity with ubuntu-latest (apt ships older).
 # Two cmake majors like ubuntu-latest: 3.31 is the default `cmake`, 4.x is exposed as `cmake4`.
 ARG CMAKE_VERSION=3.31.12
 ARG CMAKE_SHA256=0dc2e9a6860f06bf10bd8fadc03e35d9eeb4df46e33763a7e480e987758f385c
-ARG CMAKE4_VERSION=4.4.2
-ARG CMAKE4_SHA256=3ada9a3f5d8a85413579bdd0ea6aa8e8da86efdd6d15c91a1afa517f2021956c
+ARG CMAKE4_VERSION=4.4.4
+ARG CMAKE4_SHA256=e5bb807f7728cb60cd8b27ebc97a2edb469b68655f21e844a600c3575b76f5bb
 ARG GITLFS_VERSION=3.8.0
 ARG GITLFS_SHA256=e455e00f15d9b95661b8d53498ffb0c3367962cf1ec73c31ab7369516cd6ab8d
 # pipx pinned via pip (Ubuntu's apt pipx lags behind ubuntu-latest).
@@ -104,37 +108,52 @@ ARG HELM_VERSION=3.22.0
 ARG HELM_SHA256=1e4ab49e429626cf6c6958d914248b78c9730803c2751b87627e171dc800e7bb
 
 # AWS CLI v2 pinned installer + SHA256. Azure CLI and Google Cloud CLI come from vendor apt repos.
-ARG AWSCLI_VERSION=2.37.1
-ARG AWSCLI_SHA256=61a79950dfb436985611a258d3a8f85a47e13498fcc72c7d8d0597f5c9fde133
+ARG AWSCLI_VERSION=2.37.10
+ARG AWSCLI_SHA256=1aaed142cb63294e41ef70431fe9c602dbb869f8a21b6b8fc9d5ffd53b5c9235
 # AWS Session Manager plugin (.deb from AWS S3) — pinned version + SHA256 of the deb.
 ARG SSM_PLUGIN_VERSION=1.2.835.0
 ARG SSM_PLUGIN_SHA256=7c6dcad12518571cc7959a713e6a8ae1bdf6ed66fd9bee37dc189e39ca58ae03
+# Amazon ECR Docker credential helper: release binary (apt ships an older one); SHA256 from the
+# release's .sha256 file.
+ARG ECR_HELPER_VERSION=0.12.0
+ARG ECR_HELPER_SHA256=a22ab6d59dbac777b8fb31984709461da00a4c778b6ae14c8d3729e8d5ded1a6
+# ssh.dev.azure.com RSA host key fingerprint as published in the Azure DevOps SSH docs.
+ARG AZURE_DEVOPS_SSH_FP=SHA256:ohD8VZEXGWo6Ez8GSEJQ9WpafgLFsOfLOtGGQCQo6Og
 
 # Browser drivers. geckodriver + Selenium server are pinned (SHA256); chromedriver/msedgedriver
 # float to match the apt browser version (fetched by version at build, like the browsers themselves).
 ARG GECKODRIVER_VERSION=0.37.1
 ARG GECKODRIVER_SHA256=e815130ea95983e162ae91843b48d3a3ce991735635fce83a647afde21e09f7e
-ARG SELENIUM_VERSION=4.49.0
-ARG SELENIUM_SHA256=8221cb7bf687b8ca13c31c2bca9fb8cc12e9d4c808baff670c66cb0e450ceb35
+ARG SELENIUM_VERSION=4.50.0
+ARG SELENIUM_SHA256=4664ef41d4bf5ee78cd6264ff8dca480ef80628ca91df95ca554c4d66f7831c1
+# Chromium snapshot (as ubuntu-latest): the chromium-browser-snapshots build nearest at or below the
+# Chrome stable revision at pin time. Snapshot objects are immutable; SHA256 computed on the pinned
+# zip (cross-checked against the bucket's MD5). Bumped manually alongside a Chrome major.
+ARG CHROMIUM_REVISION=1697588
+ARG CHROMIUM_SHA256=b77317efe3b1fae1eb9f98b40ef4882e3769c9ff180996d4281a7cb647d5c15f
 
 # DevOps tools — pinned binaries + SHA256 (Newman/Parcel via npm; Ansible/yamllint via pipx;
 # Fastlane via gem; Podman/Buildah/Skopeo from apt).
 ARG BAZELISK_VERSION=1.29.0
 ARG BAZELISK_SHA256=5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992
+# Bazel version bazelisk falls back to without a .bazelversion (USE_BAZEL_FALLBACK_VERSION, as
+# ubuntu-latest) — deterministic instead of "latest at run time".
+ARG BAZEL_FALLBACK_VERSION=9.2.0
 ARG KIND_VERSION=0.33.0
 ARG KIND_SHA256=aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d
 ARG MINIKUBE_VERSION=1.39.0
 ARG MINIKUBE_SHA256=b738496da01be06bbaf80c688f57ce25acd3849fbb518155f3a88e03ef555aa4
-ARG KUSTOMIZE_VERSION=5.8.1
-ARG KUSTOMIZE_SHA256=029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d
+ARG KUSTOMIZE_VERSION=5.8.2
+ARG KUSTOMIZE_SHA256=06af0a202c2b831207d0173f9c9cdb1b30abceca0747cb3fbb72792d26055c95
 ARG PACKER_VERSION=1.16.1
 ARG PACKER_SHA256=af38a9e93e4ed1b9ca68206ae969c64c300c82a3dde46a780dfa629f0867f651
-ARG BICEP_VERSION=0.47.16
-ARG BICEP_SHA256=64c345a58e0c3e48b1bc98a4e62d6b3adb1d238281297de3400aeafb2697aa5a
+ARG BICEP_VERSION=0.48.1
+ARG BICEP_SHA256=b09ec25a9d376c1f8e33ede6ed22b587f915ad68488d5db77a6f9541748c7f6e
 ARG AZCOPY_VERSION=10.32.8
 ARG AZCOPY_SHA256=a95277dbc265912cefdddbaf251aa99ec648cb18ba657e8788066357a9022dc3
 ARG CODEQL_VERSION=2.27.1
 ARG CODEQL_SHA256=1d380f79896ededc654c7b21fafb3360136f1aeb678ad4df4df9af3910c6b815
+ARG YARN_VERSION=1.22.22
 ARG NEWMAN_VERSION=6.2.2
 ARG PARCEL_VERSION=2.16.4
 ARG LERNA_VERSION=10.0.1
@@ -149,26 +168,28 @@ ARG MULTIJSON_VERSION=1.21.2
 # JVM project-management tools — Maven/Gradle pinned (Ant is from apt).
 ARG MAVEN_VERSION=3.9.16
 ARG MAVEN_SHA512=831a8591fe20c8243b1dbe7d71e3244f31d1665b0804b2e825e38cbbe5ce0cafb8338851f90780735568773e0a6cd07bbec107cda0b896b008b861075358b6f6
-ARG GRADLE_VERSION=9.7.1
-ARG GRADLE_SHA256=acd53f1edaf02f1a8ff99879f8a34b302661a057d9b063ae9e35b552f804d20a
+ARG GRADLE_VERSION=9.8.0
+ARG GRADLE_SHA256=bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e6c
 
 # Misc tools: Pulumi (pinned tarball), nvm (git tag), n (npm); Composer + PHPUnit (pinned phars).
-ARG PULUMI_VERSION=3.264.0
-ARG PULUMI_SHA256=0217cd1624a07e4078830b4596901553373822b603e9189db76b542f7d2d4841
+# PHP series = ubuntu-latest toolset-2404.json php.versions.
+ARG PHP_VERSION=8.3
+ARG PULUMI_VERSION=3.267.0
+ARG PULUMI_SHA256=527c1ce7c16cb38525a96d55422f221e819476e2b0743ae55c9862ad775ae10a
 # OpenTofu (MPL-2.0, OSS) — Terraform-compatible IaC; ubuntu-latest dropped Terraform (BSL), so this
 # is a deliberate OSS extra beyond strict parity.
-ARG OPENTOFU_VERSION=1.12.6
-ARG OPENTOFU_SHA256=5dc43da4f750f33873dc25e94587128709e819e544b7be9016b255316153c3a8
+ARG OPENTOFU_VERSION=1.13.1
+ARG OPENTOFU_SHA256=8ccbc6f8ee21d2827715f3c6e08a9b3e0209b1e62057c05067ef117e047c1a80
 ARG NVM_VERSION=0.40.8
 ARG N_VERSION=10.2.0
 ARG COMPOSER_VERSION=2.10.3
 ARG COMPOSER_SHA256=7a2d379d5b8ffdaa028580ef26494c36d2feef4b178d3dd1473a4dbc5e17c8d6
-ARG PHPUNIT_VERSION=8.5.55
-ARG PHPUNIT_SHA256=7826b44fd6289d8913c6f34d845b25ac57c0a48a20b3d01e0f0c00c3087abf7b
+ARG PHPUNIT_VERSION=8.5.56
+ARG PHPUNIT_SHA256=765122cdaa75527967beaec77763c21eea59e908c5c751e95054f50195dd4939
 
 # Language runtimes (Julia/Kotlin pinned binaries; PowerShell tarball; Haskell via ghcup).
-ARG JULIA_VERSION=1.12.7
-ARG JULIA_SHA256=4e7e9e776634d24835250de67cde39b0d4af15bc432eb20697e6be6c28ea69e8
+ARG JULIA_VERSION=1.13.1
+ARG JULIA_SHA256=0f2e18c8dea60a2c8711d089cd9612f7a8df394b89e5208096fe5867647e0908
 ARG KOTLIN_VERSION=2.4.20
 ARG KOTLIN_SHA256=59e9ca74c7904ef2c122b12114937673ccce68de820a663f0ed66ccf8799e0b7
 ARG POWERSHELL_VERSION=7.6.6
@@ -206,7 +227,7 @@ ARG ANDROID_CMAKE2_VERSION=4.1.2
 
 # Environment managers + AWS SAM. Homebrew/vcpkg are pinned by git tag; Miniconda/SAM by SHA256.
 # MINICONDA_VERSION is bumped manually (no Renovate datasource for its pyXXX_NN.N.N-N installer name).
-ARG HOMEBREW_VERSION=6.0.22
+ARG HOMEBREW_VERSION=7.0.8
 ARG VCPKG_VERSION=2026.07.29
 ARG MINICONDA_VERSION=py314_26.7.1-1
 ARG MINICONDA_SHA256=e8b25b92b262499141c5bd57a98d3c008024185fa951494b9cd9b6d94e72338b
@@ -236,9 +257,28 @@ ENV DEBIAN_FRONTEND=noninteractive \
     ANDROID_NDK_HOME=/usr/local/lib/android/sdk/ndk/27.3.13750724 \
     ANDROID_NDK_ROOT=/usr/local/lib/android/sdk/ndk/27.3.13750724 \
     ANDROID_NDK_LATEST_HOME=/usr/local/lib/android/sdk/ndk/29.0.14206865 \
-    # /home/runner/.local/bin: pipx target; /home/runner/go/bin: `go install` target; /usr/local/go/bin:
-    # default `go`; /home/linuxbrew/...: Homebrew; /opt/pulumi: Pulumi (parity with GitHub-hosted).
-    PATH=/home/runner/.local/bin:/home/runner/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:/usr/local/.ghcup/bin:/home/linuxbrew/.linuxbrew/bin:/opt/pulumi:/opt/swift/usr/bin:/usr/local/lib/android/sdk/cmdline-tools/latest/bin:/usr/local/lib/android/sdk/platform-tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    ACCEPT_EULA=Y \
+    CHROME_BIN=/usr/bin/google-chrome \
+    GOROOT_1_25_X64=/opt/hostedtoolcache/go/${GO_125}/x64 \
+    GOROOT_1_26_X64=/opt/hostedtoolcache/go/${GO_126}/x64 \
+    HOMEBREW_NO_AUTO_UPDATE=1 \
+    HOMEBREW_CLEANUP_PERIODIC_FULL_DAYS=3650 \
+    BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
+    USE_BAZEL_FALLBACK_VERSION=silent:${BAZEL_FALLBACK_VERSION} \
+    SWIFT_PATH=/opt/swift/usr/bin \
+    PIPX_HOME=/opt/pipx \
+    PIPX_BIN_DIR=/opt/pipx_bin \
+    DOTNET_ROOT=/usr/share/dotnet \
+    DOTNET_NOLOGO=1 \
+    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    DOTNET_MULTILEVEL_LOOKUP=0 \
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1 \
+    ANT_HOME=/usr/share/ant \
+    GRADLE_HOME=/opt/gradle-${GRADLE_VERSION} \
+    # ~/.dotnet/tools: `dotnet tool install -g` target; ~/.local/bin: `pip install --user` target;
+    # /opt/pipx_bin: pipx apps; ~/go/bin: `go install` target; /usr/local/go/bin: default `go`;
+    # /home/linuxbrew/...: Homebrew; /opt/pulumi: Pulumi (parity with GitHub-hosted).
+    PATH=/home/runner/.config/composer/vendor/bin:/home/runner/.dotnet/tools:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/go/bin:/usr/local/go/bin:/usr/local/cargo/bin:/usr/local/.ghcup/bin:/home/linuxbrew/.linuxbrew/bin:/opt/pulumi:/opt/swift/usr/bin:/usr/local/lib/android/sdk/cmdline-tools/latest/bin:/usr/local/lib/android/sdk/platform-tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -261,11 +301,22 @@ EOF
 
 # DL3008 (apt version pinning) is intentionally ignored on the Node/Docker/gh installs below: the
 # image pulls fresh security patches (weekly rebuild), pinning every version is impractical.
+# Also, as ubuntu-latest: libicu70 (pinned deb), clang 18 as the unversioned clang-format/clang-tidy/
+# run-clang-tidy, and /etc/pip.conf allowing system pip installs (PEP 668 opt-out). The openssh-server
+# host keys generated by the `ssh` package are removed so no private key ships in a public image;
+# run `sudo ssh-keygen -A` before starting sshd.
 COPY packages.txt /tmp/packages.txt
 RUN apt-get-update-retry \
     && xargs -a /tmp/packages.txt apt-get install -y --no-install-recommends \
-    && phpdismod -v 8.3 pcov \
-    && rm -rf /var/lib/apt/lists/* /tmp/packages.txt
+    && curl -fsSL https://archive.ubuntu.com/ubuntu/pool/main/i/icu/libicu70_70.1-2_amd64.deb -o /tmp/libicu70.deb \
+    && echo "${LIBICU70_SHA512}  /tmp/libicu70.deb" | sha512sum -c - \
+    && apt-get install -y --no-install-recommends /tmp/libicu70.deb \
+    && for t in clang-format clang-tidy run-clang-tidy; do \
+         update-alternatives --install "/usr/bin/${t}" "${t}" "/usr/bin/${t}-18" 100 || exit 1; \
+       done \
+    && rm -f /etc/ssh/ssh_host_* \
+    && printf '[global]\nbreak-system-packages = true\n' > /etc/pip.conf \
+    && rm -rf /var/lib/apt/lists/* /tmp/packages.txt /tmp/libicu70.deb
 
 # Newer Git from the maintainers' PPA (Ubuntu ships an older point release) — version parity.
 # add-apt-repository's single-shot Launchpad key fetch intermittently flakes
@@ -277,13 +328,45 @@ RUN i=0; until add-apt-repository -y ppa:git-core/ppa; do \
     done \
     && apt-get-update-retry \
     && apt-get install -y --no-install-recommends git \
+    && git config --system --add safe.directory '*' \
+    && rm -rf /var/lib/apt/lists/*
+
+# System-wide SSH known hosts (as ubuntu-latest): github.com from GitHub's published host keys
+# (api.github.com/meta, not a trust-on-first-use keyscan); ssh.dev.azure.com publishes only a
+# fingerprint, so its keyscan result is accepted only if it matches the documented one.
+RUN set -euo pipefail; \
+    curl -fsSL --retry 5 --retry-all-errors https://api.github.com/meta | jq -r '.ssh_keys[] | "github.com " + .' > /etc/ssh/ssh_known_hosts; \
+    [ "$(grep -c '^github.com ' /etc/ssh/ssh_known_hosts)" -ge 3 ]; \
+    i=0; \
+    until ssh-keyscan -T 10 -t rsa ssh.dev.azure.com 2>/dev/null | grep '^ssh.dev.azure.com ' > /tmp/azure.keys; do \
+      i=$((i+1)); [ "$i" -lt 5 ] || exit 1; sleep 5; \
+    done; \
+    ssh-keygen -lf /tmp/azure.keys | grep -qF " ${AZURE_DEVOPS_SSH_FP} "; \
+    cat /tmp/azure.keys >> /etc/ssh/ssh_known_hosts; \
+    rm -f /tmp/azure.keys; \
+    chmod 0644 /etc/ssh/ssh_known_hosts
+
+# PHP from the Ubuntu archive with the ubuntu-latest extension set (install-php.sh; same source, no
+# third-party PPA). -dev ships php-config: setup-php on self-hosted runners reuses the preinstalled
+# PHP only when php-config reports the requested series, otherwise it reinstalls PHP on every run.
+# hadolint ignore=DL3008
+RUN apt-get-update-retry \
+    && apt-get install -y --no-install-recommends php-pear snmp "php${PHP_VERSION}" \
+         "php${PHP_VERSION}"-{amqp,apcu,bcmath,bz2,cgi,cli,common,curl,dba,dev,enchant,fpm,gd,gmp,igbinary,imagick} \
+         "php${PHP_VERSION}"-{imap,interbase,intl,ldap,mbstring,memcache,memcached,mongodb,mysql,odbc,opcache,pcov} \
+         "php${PHP_VERSION}"-{pgsql,phpdbg,pspell,readline,redis,snmp,soap,sqlite3,sybase,tidy,xdebug,xml,xsl,yaml,zip,zmq} \
+    && phpdismod -v "${PHP_VERSION}" pcov \
+    && mkdir -p /etc/skel/.config/composer \
     && rm -rf /var/lib/apt/lists/*
 
 # pipx pinned via pip (apt pipx lags). --break-system-packages: install into the system interpreter
 # on PEP 668; pipx then isolates every app it installs into its own venvs.
 RUN python3 -m pip install --break-system-packages --no-cache-dir "pipx==${PIPX_VERSION}"
 
-# Node.js via the NodeSource keyring repo (not `curl | bash`); npm upgraded to a pinned fresh version.
+# Node.js via the NodeSource keyring repo (not `curl | bash`); npm upgraded in place to a pinned fresh
+# version. The global prefix then moves to /usr/local (ubuntu-latest's layout) so the global npm CLIs
+# below land there and `npm i -g` works as runner without sudo (ownership set with those CLIs).
+# corepack provides only pnpm: yarn is the npm-installed 1.x classic, as on ubuntu-latest.
 # hadolint ignore=DL3008
 RUN install -m 0755 -d /etc/apt/keyrings \
     && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key -o /etc/apt/keyrings/nodesource.asc \
@@ -293,7 +376,8 @@ RUN install -m 0755 -d /etc/apt/keyrings \
     && apt-get-update-retry \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g "npm@${NPM_VERSION}" \
-    && corepack enable \
+    && npm config set prefix /usr/local --location=global \
+    && corepack enable pnpm \
     && npm cache clean --force \
     && rm -rf /var/lib/apt/lists/*
 
@@ -318,6 +402,10 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o 
     && apt-get-update-retry \
     && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL "https://amazon-ecr-credential-helper-releases.s3.us-east-2.amazonaws.com/${ECR_HELPER_VERSION}/linux-amd64/docker-credential-ecr-login" -o /usr/bin/docker-credential-ecr-login \
+    && echo "${ECR_HELPER_SHA256}  /usr/bin/docker-credential-ecr-login" | sha256sum -c - \
+    && chmod 0755 /usr/bin/docker-credential-ecr-login
 
 RUN curl -fsSL "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64" -o /usr/local/bin/yq \
     && echo "${YQ_SHA256}  /usr/local/bin/yq" | sha256sum -c - \
@@ -400,10 +488,25 @@ RUN curl -fsSL https://packages.adoptium.net/artifactory/api/gpg/key/public | gp
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb noble main" \
        > /etc/apt/sources.list.d/adoptium.list \
     && apt-get-update-retry \
-    && apt-get install -y --no-install-recommends temurin-8-jdk temurin-11-jdk temurin-17-jdk temurin-21-jdk temurin-25-jdk \
-    && update-alternatives --set java /usr/lib/jvm/temurin-17-jdk-amd64/bin/java \
-    && update-alternatives --set javac /usr/lib/jvm/temurin-17-jdk-amd64/bin/javac \
+    && apt-get install -y --no-install-recommends java-common temurin-8-jdk temurin-11-jdk temurin-17-jdk temurin-21-jdk temurin-25-jdk \
+    && update-java-alternatives -s temurin-17-jdk-amd64 \
     && rm -rf /var/lib/apt/lists/*
+
+# Java toolcache (as ubuntu-latest's install-java-tools.sh): Java_Temurin-Hotspot_jdk/<semver>/x64 links
+# each installed JDK + an x64.complete marker, so actions/setup-java (distribution: temurin) gets a
+# cache hit. The version is read from the JDK's release file, normalised to semver like upstream.
+RUN for n in 8 11 17 21 25; do \
+      jdk="/usr/lib/jvm/temurin-${n}-jdk-amd64"; \
+      v="$(grep '^SEMANTIC' "${jdk}/release" | cut -d= -f2 | tr -d '"' | tr '+' '-')"; \
+      if [ -z "$v" ]; then v="$("${jdk}/bin/java" -fullversion 2>&1 | tr -d '"' | tr '+' '-' | awk '{print $4}')"; fi; \
+      if echo "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'; then v="$(echo "$v" | sed -E 's/\.[0-9]+-/-/')"; fi; \
+      if echo "$v" | grep -Eq '^[0-9]+-'; then v="$(echo "$v" | sed -E 's/-/.0-/')"; fi; \
+      if echo "$v" | grep -Eq '^[0-9]+\.[0-9]+-'; then v="$(echo "$v" | sed -E 's/-/.0-/')"; fi; \
+      echo "$v" | grep -Eq "^${n}\.[0-9]+\.[0-9]+-[0-9]+" || { echo "bad Java ${n} version: '${v}'" >&2; exit 1; }; \
+      d="/opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/${v}"; \
+      mkdir -p "$d" && ln -s "$jdk" "$d/x64" && touch "$d/x64.complete" || exit 1; \
+    done \
+    && chown -R 1001:1001 /opt/hostedtoolcache
 ENV JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64 \
     JAVA_HOME_8_X64=/usr/lib/jvm/temurin-8-jdk-amd64 \
     JAVA_HOME_11_X64=/usr/lib/jvm/temurin-11-jdk-amd64 \
@@ -411,14 +514,26 @@ ENV JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64 \
     JAVA_HOME_21_X64=/usr/lib/jvm/temurin-21-jdk-amd64 \
     JAVA_HOME_25_X64=/usr/lib/jvm/temurin-25-jdk-amd64
 
-# Databases: PostgreSQL 16 (PGDG repo) + MySQL 8.0 (Ubuntu) — clients and servers (parity).
+# Databases: PostgreSQL 16 (PGDG repo) + MySQL 8.0 (Ubuntu) — clients and servers (parity). Neither
+# server runs by default. MySQL root gets ubuntu-latest's documented password ("root", install-mysql.sh)
+# via a debconf preseed, applied by the package while it initialises the data dir (no server needed).
+# The postinst leaves /run/mysqld at 0700 (a systemd host recreates it at boot; a container image
+# keeps it), which locks non-root clients out of the socket — reset it to the init script's 0755.
+COPY <<'EOF' /tmp/mysql.preseed
+mysql-server mysql-server/root_password password root
+mysql-server mysql-server/root_password_again password root
+EOF
+
 # hadolint ignore=DL3008
-RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/keyrings/pgdg.gpg \
+RUN debconf-set-selections /tmp/mysql.preseed \
+    && rm -f /tmp/mysql.preseed \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/keyrings/pgdg.gpg \
     && chmod a+r /etc/apt/keyrings/pgdg.gpg \
     && echo "deb [arch=${TARGETARCH} signed-by=/etc/apt/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt noble-pgdg main" \
        > /etc/apt/sources.list.d/pgdg.list \
     && apt-get-update-retry \
     && apt-get install -y --no-install-recommends postgresql-16 postgresql-client-16 mysql-server mysql-client \
+    && install -d -m 0755 -o mysql -g root /run/mysqld \
     && rm -rf /var/lib/apt/lists/*
 
 # Google Chrome + matching ChromeDriver (Chrome for Testing). Chrome floats to latest stable (apt);
@@ -437,6 +552,15 @@ RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor
     && install -m 0755 /tmp/chromedriver-linux64/chromedriver /usr/local/share/chromedriver-linux64/chromedriver \
     && ln -s /usr/local/share/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver \
     && rm -rf /tmp/chromedriver.zip /tmp/chromedriver-linux64 /var/lib/apt/lists/*
+
+# Chromium snapshot into /usr/local/share/chromium + chromium/chromium-browser links (as ubuntu-latest).
+RUN curl -fsSL "https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F${CHROMIUM_REVISION}%2Fchrome-linux.zip?alt=media" -o /tmp/chromium.zip \
+    && echo "${CHROMIUM_SHA256}  /tmp/chromium.zip" | sha256sum -c - \
+    && mkdir -p /usr/local/share/chromium \
+    && unzip -q /tmp/chromium.zip -d /usr/local/share/chromium \
+    && ln -s /usr/local/share/chromium/chrome-linux/chrome /usr/bin/chromium \
+    && ln -s /usr/local/share/chromium/chrome-linux/chrome /usr/bin/chromium-browser \
+    && rm -f /tmp/chromium.zip
 
 # Microsoft Edge + matching msedgedriver (reuses the Microsoft keyring from the Azure CLI step).
 # hadolint ignore=DL3008
@@ -497,15 +621,22 @@ RUN curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/k
     && ln -s azcopy /usr/local/bin/azcopy10 \
     && rm -rf /tmp/kustomize.tgz /tmp/packer.zip /tmp/azcopy.tgz "/tmp/azcopy_linux_amd64_${AZCOPY_VERSION}"
 
-# Ansible + yamllint via pipx (shared bin dir); Newman + Parcel via npm; Fastlane via gem.
+# Ansible + yamllint via pipx into the shared $PIPX_HOME/$PIPX_BIN_DIR (/opt/pipx, /opt/pipx_bin — as
+# ubuntu-latest); Newman, Parcel, yarn & co. via npm into the /usr/local prefix; Fastlane via gem.
+# The pipx and npm global dirs are handed to runner (uid 1001, created later) in this same layer, so
+# `pipx install` / `npm i -g` work without sudo — chmod 777 as upstream would also open them to others.
+# /usr/local/bin is first in sudo's secure_path and holds the root-owned systemctl shim; runner
+# owning it is harmless only while runner has passwordless sudo anyway.
 # DL3013: pipx installs apps (not pip libs); versions track latest via weekly rebuild, like apt/npm.
 # hadolint ignore=DL3013
-RUN PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install --include-deps ansible \
-    && PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install yamllint \
+RUN pipx install --include-deps ansible \
+    && pipx install yamllint \
     && npm install -g "newman@${NEWMAN_VERSION}" "parcel@${PARCEL_VERSION}" "lerna@${LERNA_VERSION}" "n@${N_VERSION}" \
          "typescript@${TYPESCRIPT_VERSION}" "webpack@${WEBPACK_VERSION}" "webpack-cli@${WEBPACK_CLI_VERSION}" \
-         "grunt@${GRUNT_VERSION}" "gulp@${GULP_VERSION}" \
+         "grunt@${GRUNT_VERSION}" "gulp@${GULP_VERSION}" "yarn@${YARN_VERSION}" \
     && npm cache clean --force \
+    && chown -R 1001:1001 "${PIPX_HOME}" "${PIPX_BIN_DIR}" /usr/local/lib/node_modules \
+    && chown 1001:1001 /usr/local/bin \
     && gem install --no-document fastlane -v "${FASTLANE_VERSION}" \
     && gem install --no-document multi_json -v "${MULTIJSON_VERSION}"
 
@@ -519,8 +650,8 @@ RUN curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/b
     && ln -s "/opt/gradle-${GRADLE_VERSION}/bin/gradle" /usr/local/bin/gradle \
     && rm -f /tmp/maven.tar.gz /tmp/gradle.zip
 
-RUN curl -fsSL "https://getcomposer.org/download/${COMPOSER_VERSION}/composer.phar" -o /usr/local/bin/composer \
-    && echo "${COMPOSER_SHA256}  /usr/local/bin/composer" | sha256sum -c - && chmod 0755 /usr/local/bin/composer \
+RUN curl -fsSL "https://getcomposer.org/download/${COMPOSER_VERSION}/composer.phar" -o /usr/bin/composer \
+    && echo "${COMPOSER_SHA256}  /usr/bin/composer" | sha256sum -c - && chmod 0755 /usr/bin/composer \
     && curl -fsSL "https://phar.phpunit.de/phpunit-${PHPUNIT_VERSION}.phar" -o /usr/local/bin/phpunit \
     && echo "${PHPUNIT_SHA256}  /usr/local/bin/phpunit" | sha256sum -c - && chmod 0755 /usr/local/bin/phpunit
 
@@ -546,11 +677,13 @@ RUN curl -fsSL "https://julialang-s3.julialang.org/bin/linux/x64/${JULIA_VERSION
     && ln -s /opt/kotlinc/bin/kotlinc /usr/local/bin/kotlinc \
     && rm -f /tmp/julia.tar.gz /tmp/kotlin.zip
 
-# Swift toolchain (pinned tarball + SHA256) into /opt/swift; bin on PATH via ENV.
+# Swift toolchain (pinned tarball + SHA256) into /opt/swift; bin on PATH and $SWIFT_PATH via ENV; the
+# libsourcekitdInProc.so link in /usr/local/lib is what ubuntu-latest provides for SourceKit-LSP tooling.
 RUN curl -fsSL "https://download.swift.org/swift-${SWIFT_VERSION}-release/ubuntu2404/swift-${SWIFT_VERSION}-RELEASE/swift-${SWIFT_VERSION}-RELEASE-ubuntu24.04.tar.gz" -o /tmp/swift.tar.gz \
     && echo "${SWIFT_SHA256}  /tmp/swift.tar.gz" | sha256sum -c - \
     && mkdir -p /opt/swift \
     && tar -xzf /tmp/swift.tar.gz -C /opt/swift --strip-components=1 \
+    && ln -s /opt/swift/usr/lib/libsourcekitdInProc.so /usr/local/lib/libsourcekitdInProc.so \
     && rm -f /tmp/swift.tar.gz
 
 RUN mkdir -p /opt/microsoft/powershell/7 \
@@ -562,7 +695,7 @@ RUN mkdir -p /opt/microsoft/powershell/7 \
     && rm -f /tmp/pwsh.tar.gz \
     && pwsh -NoProfile -Command "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted; \
        Install-Module -Name Az -RequiredVersion 15.6.1 -Scope AllUsers -Force; \
-       Install-Module -Name Microsoft.Graph -RequiredVersion 2.39.0 -Scope AllUsers -Force; \
+       Install-Module -Name Microsoft.Graph -RequiredVersion 2.40.0 -Scope AllUsers -Force; \
        Install-Module -Name Pester -RequiredVersion 5.9.0 -Scope AllUsers -Force; \
        Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.25.0 -Scope AllUsers -Force"
 
@@ -574,24 +707,29 @@ RUN curl -fsSL "https://downloads.haskell.org/ghcup/${GHCUP_VERSION}/x86_64-linu
     && ghcup install cabal "${CABAL_VERSION}" --set \
     && ghcup install stack "${STACK_VERSION}" --set
 
+# .NET SDKs into /usr/share/dotnet — DOTNET_ROOT and actions/setup-dotnet's default Linux install dir,
+# so setup-dotnet finds the preinstalled SDKs and adds new ones next to them (dir owned by runner, uid
+# 1001, in this same layer). /usr/lib/dotnet stays as a compat link. nbgv goes to /etc/skel/.dotnet/tools
+# (copied to ~runner on user creation; on PATH), as ubuntu-latest does with its dotnet tools.
 # The SDK patch list is bumped manually (no Renovate datasource for the exact-patch set).
-ENV DOTNET_ROOT=/usr/lib/dotnet \
-    DOTNET_NOLOGO=1 \
-    DOTNET_CLI_TELEMETRY_OPTOUT=1
 RUN curl -fsSL "https://raw.githubusercontent.com/dotnet/install-scripts/${DOTNET_INSTALL_COMMIT}/src/dotnet-install.sh" -o /tmp/dotnet-install.sh \
     && echo "${DOTNET_INSTALL_SHA256}  /tmp/dotnet-install.sh" | sha256sum -c - \
     && chmod +x /tmp/dotnet-install.sh \
     && for v in 8.0.131 8.0.206 8.0.319 8.0.425 9.0.121 9.0.205 9.0.318 10.0.112 10.0.204 10.0.303 10.0.401; do \
-         /tmp/dotnet-install.sh --version "${v}" --install-dir /usr/lib/dotnet --no-path || exit 1; \
+         /tmp/dotnet-install.sh --version "${v}" --install-dir "${DOTNET_ROOT}" --no-path || exit 1; \
        done \
-    && ln -s /usr/lib/dotnet/dotnet /usr/local/bin/dotnet \
-    && /usr/lib/dotnet/dotnet tool install --tool-path /usr/local/bin nbgv \
-    && rm -f /tmp/dotnet-install.sh
+    && ln -s "${DOTNET_ROOT}/dotnet" /usr/local/bin/dotnet \
+    && ln -s "${DOTNET_ROOT}" /usr/lib/dotnet \
+    && "${DOTNET_ROOT}/dotnet" tool install --tool-path /etc/skel/.dotnet/tools nbgv \
+    && chown -R 1001:1001 "${DOTNET_ROOT}" \
+    && rm -rf /tmp/dotnet-install.sh /root/.dotnet /root/.nuget /tmp/NuGetScratch*
 
-# Miniconda (batch install; reachable via $CONDA, not on the default PATH by design — parity).
+# Miniconda (batch install at $CONDA). As on ubuntu-latest, only `conda` itself is linked into
+# /usr/bin; $CONDA/bin (its python, pip) stays off PATH so it doesn't shadow the system Python.
 RUN curl -fsSL "https://repo.anaconda.com/miniconda/Miniconda3-${MINICONDA_VERSION}-Linux-x86_64.sh" -o /tmp/miniconda.sh \
     && echo "${MINICONDA_SHA256}  /tmp/miniconda.sh" | sha256sum -c - \
     && bash /tmp/miniconda.sh -b -p /usr/share/miniconda \
+    && ln -s /usr/share/miniconda/bin/conda /usr/bin/conda \
     && rm -f /tmp/miniconda.sh
 
 RUN curl -fsSL "https://github.com/aws/aws-sam-cli/releases/download/v${SAM_VERSION}/aws-sam-cli-linux-x86_64.zip" -o /tmp/sam.zip \
@@ -603,8 +741,12 @@ RUN curl -fsSL "https://github.com/aws/aws-sam-cli/releases/download/v${SAM_VERS
 # Unprivileged runner (+sudo for setup-* steps) and a toolcache writable by the runner user.
 # UID pinned to 1001 (same as the official ARC runner image) — dind volume permissions rely on it.
 # docker group pinned to gid 123 — the gid the ARC dind sidecar creates docker.sock with, so the
-# runner user can reach the daemon socket instead of getting permission denied.
-RUN useradd -m -u 1001 -s /bin/bash runner \
+# runner user can reach the daemon socket instead of getting permission denied. GID pinned to 1001 too:
+# earlier layers hand dirs (dotnet, npm/pipx globals, toolcache) to 1001:1001 before the user exists.
+# /etc/skel/.config/configstore (as ubuntu-latest) exists for $XDG_CONFIG_HOME tools that expect it.
+RUN mkdir -p /etc/skel/.config/configstore \
+    && groupadd -g 1001 runner \
+    && useradd -m -u 1001 -g 1001 -s /bin/bash runner \
     && groupadd -g 123 docker \
     && usermod -aG sudo,docker runner \
     && echo "runner ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/runner \
@@ -751,13 +893,13 @@ RUN declare -A PYPY_FILE=( \
        ) \
     && for v in "${PYPY_39}" "${PYPY_310}" "${PYPY_311}"; do \
          echo "== prebake PyPy ${v} ==" \
-         && curl -fsSL "https://downloads.python.org/pypy/${PYPY_FILE[${v}]}.tar.bz2" -o "/tmp/pypy-${v}.tar.bz2" \
-         && echo "${PYPY_SHA[${v}]}  /tmp/pypy-${v}.tar.bz2" | sha256sum -c - \
+         && curl -fsSL "https://downloads.python.org/pypy/${PYPY_FILE[${v}]}" -o "/tmp/pypy-${v}.tar" \
+         && echo "${PYPY_SHA[${v}]}  /tmp/pypy-${v}.tar" | sha256sum -c - \
          && dest="/opt/hostedtoolcache/PyPy/${v}/x64" \
          && mkdir -p "${dest}" \
-         && tar -xjf "/tmp/pypy-${v}.tar.bz2" -C "${dest}" --strip-components=1 \
+         && tar -xf "/tmp/pypy-${v}.tar" -C "${dest}" --strip-components=1 \
          && touch "/opt/hostedtoolcache/PyPy/${v}/x64.complete" \
-         && rm -f "/tmp/pypy-${v}.tar.bz2" || exit 1; \
+         && rm -f "/tmp/pypy-${v}.tar" || exit 1; \
        done \
     && rm -rf /tmp/* \
     && chown -R runner:runner /opt/hostedtoolcache/PyPy
@@ -768,6 +910,7 @@ RUN curl -fsSL "https://github.com/github/codeql-action/releases/download/codeql
     && mkdir -p "/opt/hostedtoolcache/CodeQL/${CODEQL_VERSION}/x64" \
     && tar -xzf /tmp/codeql.tar.gz -C "/opt/hostedtoolcache/CodeQL/${CODEQL_VERSION}/x64" \
     && touch "/opt/hostedtoolcache/CodeQL/${CODEQL_VERSION}/x64.complete" \
+    && touch "/opt/hostedtoolcache/CodeQL/${CODEQL_VERSION}/x64/pinned-version" \
     && ln -s "/opt/hostedtoolcache/CodeQL/${CODEQL_VERSION}/x64/codeql/codeql" /usr/local/bin/codeql \
     && chown -R runner:runner /opt/hostedtoolcache/CodeQL \
     && rm -f /tmp/codeql.tar.gz
@@ -826,6 +969,46 @@ RUN curl -fsSL "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/x8
     && rm -f /tmp/rustup-init \
     && chown -R runner:runner /usr/local/rustup /usr/local/cargo
 
+# systemctl shim: the runner is a container without systemd as PID 1, so ubuntu-latest workflows
+# (`sudo systemctl start mysql.service`) would fail. Map the service-control verbs to the SysV
+# `service` scripts; everything else (and any host where systemd is PID 1) goes to the real systemctl.
+# Installed last so no package maintainer script reaches it during the build.
+COPY --chmod=0755 <<'EOF' /usr/local/bin/systemctl
+#!/bin/bash
+set -euo pipefail
+real() {
+  [ -x /usr/bin/systemctl ] && exec /usr/bin/systemctl "$@"
+  echo "systemctl: '$*' needs systemd, which is not PID 1 in this container" >&2
+  exit 1
+}
+[ "$(cat /proc/1/comm 2>/dev/null)" = systemd ] && real "$@"
+quiet=0
+args=()
+for a in "$@"; do
+  case "$a" in
+    -q|--quiet) quiet=1 ;;
+    --no-pager|--no-block) ;;
+    -*) real "$@" ;;
+    *) args+=("$a") ;;
+  esac
+done
+verb="${args[0]:-}"
+case "$verb" in start|stop|restart|reload|status|is-active) ;; *) real "$@" ;; esac
+[ "${#args[@]}" -ge 2 ] || real "$@"
+rc=0
+for unit in "${args[@]:1}"; do
+  svc="${unit%.service}"
+  case "$verb" in
+    is-active)
+      if service "$svc" status >/dev/null 2>&1; then state=active; else state=inactive; rc=3; fi
+      [ "$quiet" -eq 1 ] || echo "$state" ;;
+    status) service "$svc" status || rc=$? ;;
+    *) if [ "$quiet" -eq 1 ]; then service "$svc" "$verb" >/dev/null || rc=$?; else service "$svc" "$verb" || rc=$?; fi ;;
+  esac
+done
+exit "$rc"
+EOF
+
 # Public image metadata in ubuntu-latest's imagedata.json format (configure-image-data.sh) plus a
 # Runner line. The runner itself only reads .setup_info, which the pod entrypoint writes at runtime
 # and may source from this file; the image deliberately ships no .setup_info.
@@ -854,6 +1037,9 @@ LABEL org.opencontainers.image.title="runner-ubuntu-24.04" \
       org.opencontainers.image.vendor="tempus.build" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.base.name="docker.io/library/ubuntu:24.04"
+
+# Per-user config dir (as ubuntu-latest); set last so root build steps never write into ~runner.
+ENV XDG_CONFIG_HOME=/home/runner/.config
 
 USER 1001
 
