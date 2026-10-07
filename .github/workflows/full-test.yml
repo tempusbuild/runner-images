@@ -2,7 +2,7 @@ name: full-test
 
 # Full image build + gates on the paid larger runner. Manual and optional (not a required check):
 # run it on a branch before merging image changes. The release build (build.yml) re-runs the trivy
-# gate and smoke tests before tagging, so a failing image is never published; the size gate, Dockle
+# gate and smoke tests before tagging, so a failing image is never published; the size report, Dockle
 # and Dive run only here.
 on:
   workflow_dispatch:
@@ -46,14 +46,13 @@ jobs:
           context: ubuntu-24.04
           load: true
           tags: tempusbuild/runner-ubuntu-24.04:pr
-      - name: Image size gate
-        env:
-          MAX_BYTES: "48000000000"   # budget; CI-measured ~41.6 GiB (full parity + full Android matrix + native-build dev libs)
+      # Report only: the full image tracks ubuntu-latest's toolset, so its size follows upstream rather
+      # than a fixed budget. Pull time is handled on the nodes (pre-warm), not by capping the image.
+      - name: Image size report
         run: |
           set -euo pipefail
           size=$(docker image inspect tempusbuild/runner-ubuntu-24.04:pr --format '{{.Size}}')
-          printf 'full image size: %s (budget %s)\n' "$(numfmt --to=iec "$size")" "$(numfmt --to=iec "$MAX_BYTES")" >> "$GITHUB_STEP_SUMMARY"
-          [ "$size" -le "$MAX_BYTES" ] || { echo "image size $size exceeds budget $MAX_BYTES" >&2; exit 1; }
+          printf 'full image size: %s\n' "$(numfmt --to=iec "$size")" >> "$GITHUB_STEP_SUMMARY"
       # Buildkit retains the build layers after load; drop them so the daemon-read scanners have scratch.
       - name: Reclaim build cache
         run: docker buildx prune --all --force
