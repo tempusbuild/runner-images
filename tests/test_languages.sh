@@ -24,6 +24,11 @@ echo "ok: ImageOS=$ImageOS RUNNER_TOOL_CACHE=$RUNNER_TOOL_CACHE (writable)"
 [[ ":$PATH:" == *":/home/runner/.local/bin:"* ]] || { echo "MISSING /home/runner/.local/bin in PATH" >&2; fails=$((fails+1)); }
 echo "ok: /home/runner/.local/bin on PATH"
 
+# /etc/pip.conf opts system pip out of PEP 668 (as ubuntu-latest).
+python3 -m pip config list 2>/dev/null | grep -qx "global.break-system-packages='true'" \
+  || { echo "/etc/pip.conf break-system-packages not set" >&2; fails=$((fails+1)); }
+echo "ok: system pip break-system-packages"
+
 # venv + pip (PEP 668: inside a venv it is not externally-managed) — a typical Python CI path.
 python3 -m venv /tmp/venv
 /tmp/venv/bin/pip install --quiet --upgrade pip
@@ -36,7 +41,7 @@ python3 -m venv /tmp/venv
 rm -rf /tmp/venv
 
 # Python toolcache (matches setup-python): each baked version runs and has a .complete marker.
-for v in 3.10.21 3.11.16 3.12.14 3.13.15 3.14.7; do
+for v in 3.10.22 3.11.17 3.12.15 3.13.16 3.14.8; do
   py="${RUNNER_TOOL_CACHE}/Python/${v}/x64/bin/python3"
   [ -x "$py" ] || { echo "MISSING python toolcache $v ($py)" >&2; fails=$((fails+1)); }
   [ -f "${RUNNER_TOOL_CACHE}/Python/${v}/x64.complete" ] || { echo "MISSING marker Python/${v}/x64.complete" >&2; fails=$((fails+1)); }
@@ -44,7 +49,7 @@ for v in 3.10.21 3.11.16 3.12.14 3.13.15 3.14.7; do
 done
 
 # 3.10/3.11 bundle setuptools — must be the CVE-fixed version upgraded in the Dockerfile.
-for v in 3.10.21 3.11.16; do
+for v in 3.10.22 3.11.17; do
   "${RUNNER_TOOL_CACHE}/Python/${v}/x64/bin/python3" -c 'import setuptools; raise SystemExit(0 if int(setuptools.__version__.split(".")[0]) >= 82 else 1)' \
     || { echo "setuptools not upgraded in toolcache ${v}" >&2; fails=$((fails+1)); }
   echo "ok: setuptools fixed in toolcache ${v}"
@@ -85,7 +90,7 @@ for v in 3.2.11 3.3.12 3.4.11 4.0.7; do
 done
 
 # PyPy toolcache (matches actions/setup-pypy): each baked version runs and has a .complete marker.
-for v in 3.9.19 3.10.16 3.11.15; do
+for v in 3.9.19 3.10.16 3.11.16; do
   pypy_bin="${RUNNER_TOOL_CACHE}/PyPy/${v}/x64/bin/python3"
   [ -x "$pypy_bin" ] || { echo "MISSING pypy toolcache $v ($pypy_bin)" >&2; fails=$((fails+1)); }
   [ -f "${RUNNER_TOOL_CACHE}/PyPy/${v}/x64.complete" ] || { echo "MISSING marker PyPy/${v}/x64.complete" >&2; fails=$((fails+1)); }
@@ -98,7 +103,7 @@ command -v go >/dev/null || { echo "MISSING: go not on default PATH" >&2; fails=
 go version | grep -q 'go1.26.8 ' || { echo "default go != 1.26.8: $(go version)" >&2; fails=$((fails+1)); }
 echo "ok: default go on PATH $(go version)"
 
-rustc --version | grep -q '1.98.1' || { echo "rustc != 1.98.1: $(rustc --version)" >&2; fails=$((fails+1)); }
+rustc --version | grep -q '1.99.0' || { echo "rustc != 1.99.0: $(rustc --version)" >&2; fails=$((fails+1)); }
 cargo --version >/dev/null
 echo "ok: rust $(rustc --version), $(cargo --version)"
 
@@ -109,15 +114,38 @@ for jh in JAVA_HOME_8_X64 JAVA_HOME_11_X64 JAVA_HOME_17_X64 JAVA_HOME_21_X64 JAV
 done
 echo "ok: java default 17 + JDKs 8/11/17/21/25"
 
+# Java toolcache (matches setup-java, distribution temurin): each JDK linked + .complete marker.
+for n in 8 11 17 21 25; do
+  jh="JAVA_HOME_${n}_X64"; found=0
+  for d in "${RUNNER_TOOL_CACHE}/Java_Temurin-Hotspot_jdk/${n}".*; do
+    [ "$(readlink -f "$d/x64")" = "${!jh}" ] && [ -f "$d/x64.complete" ] && found=1
+  done
+  [ "$found" -eq 1 ] || { echo "MISSING Java ${n} toolcache entry" >&2; fails=$((fails+1)); }
+done
+for t in javac jar keytool; do
+  readlink -f "$(command -v "$t")" | grep -q 'temurin-17-jdk' || { echo "$t not Temurin 17 (update-java-alternatives)" >&2; fails=$((fails+1)); }
+done
+[ -e "${ANT_HOME:-/nonexistent}/lib/ant-junit.jar" ] || { echo "ANT_HOME/ant-optional bad: ${ANT_HOME:-unset}" >&2; fails=$((fails+1)); }
+[ -x "${GRADLE_HOME:-/nonexistent}/bin/gradle" ] || { echo "GRADLE_HOME bad: ${GRADLE_HOME:-unset}" >&2; fails=$((fails+1)); }
+echo "ok: Java toolcache 8/11/17/21/25, alternatives on 17, ANT_HOME, GRADLE_HOME"
+
 # Ruby (system default on PATH, parity with ubuntu-latest).
 ruby --version | grep -q 'ruby 3.2' || { echo "ruby != 3.2: $(ruby --version)" >&2; fails=$((fails+1)); }
 echo "ok: ruby $(ruby --version)"
 
 swift --version >/dev/null 2>&1 || { echo "swift fails to run" >&2; fails=$((fails+1)); }
-julia --version | grep -q '1.12' || { echo "julia != 1.12: $(julia --version)" >&2; fails=$((fails+1)); }
+julia --version | grep -q '1.13' || { echo "julia != 1.13: $(julia --version)" >&2; fails=$((fails+1)); }
 { kotlinc -version 2>&1 | grep -q '2.4'; } || { echo "kotlin != 2.4" >&2; fails=$((fails+1)); }
 ghc --version | grep -q '9.14' || { echo "ghc != 9.14: $(ghc --version)" >&2; fails=$((fails+1)); }
 dotnet --list-sdks >/dev/null 2>&1 || { echo "dotnet fails to run" >&2; fails=$((fails+1)); }
+# .NET at setup-dotnet's default dir, writable by runner, global tools dir on PATH.
+[ "${DOTNET_ROOT:-}" = /usr/share/dotnet ] && [ "$(readlink -f "$(command -v dotnet)")" = /usr/share/dotnet/dotnet ] \
+  || { echo "dotnet not at /usr/share/dotnet (DOTNET_ROOT=${DOTNET_ROOT:-unset})" >&2; fails=$((fails+1)); }
+[ -w /usr/share/dotnet ] || { echo "/usr/share/dotnet not writable by $(id -un)" >&2; fails=$((fails+1)); }
+[ "$(dotnet --list-sdks | wc -l)" -ge 11 ] || { echo "expected >=11 .NET SDKs: $(dotnet --list-sdks | wc -l)" >&2; fails=$((fails+1)); }
+[ "$(command -v nbgv)" = "$HOME/.dotnet/tools/nbgv" ] || { echo "nbgv not in ~/.dotnet/tools: $(command -v nbgv)" >&2; fails=$((fails+1)); }
+[ "${DOTNET_MULTILEVEL_LOOKUP:-}" = 0 ] && [ "${DOTNET_SKIP_FIRST_TIME_EXPERIENCE:-}" = 1 ] \
+  || { echo "DOTNET_MULTILEVEL_LOOKUP/DOTNET_SKIP_FIRST_TIME_EXPERIENCE unset" >&2; fails=$((fails+1)); }
 pwsh --version | grep -q '7.6' || { echo "pwsh != 7.6: $(pwsh --version)" >&2; fails=$((fails+1)); }
 echo "ok: swift/julia/kotlin/haskell(ghc)/dotnet/powershell"
 

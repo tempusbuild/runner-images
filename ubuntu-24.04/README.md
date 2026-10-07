@@ -6,16 +6,16 @@ Full runner image for ARC `gha-runner-scale-set`, label `tempus-ubuntu-24.04-4co
 
 | Component                     | Version                                                                                                                                                                                           | Source (verify before bumping)                                                        |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Base                          | Ubuntu 24.04 (noble), pinned by digest `sha256:008173c2…`                                                                                                                                         | hub.docker.com/\_/ubuntu — bump digest on weekly rebuild                              |
-| Actions runner                | `2.337.0` (ARG `RUNNER_VERSION`)                                                                                                                                                                  | github.com/actions/runner/releases                                                    |
+| Base                          | Ubuntu 24.04 (noble), pinned by digest `sha256:534baea6…`                                                                                                                                         | hub.docker.com/\_/ubuntu — bump digest on weekly rebuild                              |
+| Actions runner                | `2.338.0` (ARG `RUNNER_VERSION`)                                                                                                                                                                  | github.com/actions/runner/releases                                                    |
 | Node.js                       | LTS, major `22` (ARG `NODE_MAJOR`)                                                                                                                                                                | nodejs.org/en/about/previous-releases                                                 |
 | Python (system)               | 3.12 (system on 24.04) + `pip`, `venv`, dev headers (`python3-dev`)                                                                                                                               | packages.ubuntu.com                                                                   |
-| Python (toolcache, prebake)   | `3.10.21`, `3.11.16`, `3.12.14`, `3.13.15`, `3.14.7` in `/opt/hostedtoolcache/Python/<v>/x64` (ARG `PYTHON_31x`)                                                                                  | actions/python-versions `versions-manifest.json` — same builds `setup-python` fetches |
+| Python (toolcache, prebake)   | `3.10.22`, `3.11.17`, `3.12.15`, `3.13.16`, `3.14.8` in `/opt/hostedtoolcache/Python/<v>/x64` (ARG `PYTHON_31x`)                                                                                  | actions/python-versions `versions-manifest.json` — same builds `setup-python` fetches |
 | Go (toolcache, prebake)       | `1.25.14`, `1.26.8` — supported minors (1.25 / 1.26) in `/opt/hostedtoolcache/go/<v>/x64` (ARG `GO_125`/`GO_126`)                                                                                 | go.dev/dl — SHA256 from `?mode=json&include=all`; `setup-go` layout (cache hit)       |
-| Rust (rustup)                 | toolchain `1.98.1` (rustup `1.29.1`), default profile = rustc+cargo+rust-std+rustfmt+clippy; `RUSTUP_HOME=/usr/local/rustup`, `CARGO_HOME=/usr/local/cargo` (ARG `RUST_VERSION`/`RUSTUP_VERSION`) | static.rust-lang.org — pinned `rustup-init` + SHA256                                  |
+| Rust (rustup)                 | toolchain `1.99.0` (rustup `1.29.1`), default profile = rustc+cargo+rust-std+rustfmt+clippy; `RUSTUP_HOME=/usr/local/rustup`, `CARGO_HOME=/usr/local/cargo` (ARG `RUST_VERSION`/`RUSTUP_VERSION`) | static.rust-lang.org — pinned `rustup-init` + SHA256                                  |
 | pipx                          | `1.16.7`, pinned via `pip` (ARG `PIPX_VERSION`) — isolated installs of Python CLI tools                                                                                                           | PyPI                                                                                  |
-| CMake / Git LFS               | `3.31.12` (+ `4.4.2` as `cmake4`) / `3.8.0` — pinned binaries + SHA256 (ARG `CMAKE_VERSION`/`CMAKE4_VERSION`/`GITLFS_VERSION`)                                                                    | github.com/Kitware/CMake, github.com/git-lfs/git-lfs releases                         |
-| yq (mikefarah)                | `4.53.6` — pinned binary + SHA256 (ARG `YQ_VERSION`)                                                                                                                                              | github.com/mikefarah/yq releases                                                      |
+| CMake / Git LFS               | `3.31.12` (+ `4.4.4` as `cmake4`) / `3.8.0` — pinned binaries + SHA256 (ARG `CMAKE_VERSION`/`CMAKE4_VERSION`/`GITLFS_VERSION`)                                                                    | github.com/Kitware/CMake, github.com/git-lfs/git-lfs releases                         |
+| yq (mikefarah)                | `4.54.1` — pinned binary + SHA256 (ARG `YQ_VERSION`)                                                                                                                                              | github.com/mikefarah/yq releases                                                      |
 | GitHub CLI (`gh`)             | from the cli.github.com repo (workflows commonly call `gh`)                                                                                                                                       | cli.github.com                                                                        |
 | Docker CLI + buildx + compose | from the download.docker.com repo                                                                                                                                                                 | docs.docker.com                                                                       |
 | Base tools                    | see `packages.txt` (incl. `zstd` — speeds up `actions/cache`)                                                                                                                                     | —                                                                                     |
@@ -63,23 +63,42 @@ Included:
   `libdbus-1-dev`, `libglib2.0-dev`, `libsqlite3-dev`, `libyaml-dev`) — many beyond the ubuntu-latest
   set, so common native wheels (`pylibmc`, `mysqlclient`, `python-ldap`, `pycurl`, `Pillow`, `pyodbc`,
   `PyNaCl`, `h5py`…) compile out of the box;
-- `pipx` for isolated CLI tools;
+- `pipx` for isolated CLI tools, with the shared `PIPX_HOME=/opt/pipx` / `PIPX_BIN_DIR=/opt/pipx_bin`
+  (on `PATH`) as on ubuntu-latest — both writable by `runner`, so `pipx install` needs no `sudo`;
+- `/etc/pip.conf` sets `break-system-packages = true` (as ubuntu-latest), so `pip install` into the
+  system `python3` works — see the PEP 668 note below;
 - toolcache Python 3.10 / 3.11 / 3.12 / 3.13 / 3.14 → `setup-python` resolves offline (cache hit);
-- toolcache Go 1.25 / 1.26 → `actions/setup-go` resolves offline (cache hit); the newest (1.26) is
-  also the default `go` on `PATH` (parity with ubuntu-latest), so tools expecting a system Go work
-  without downloading a toolchain — versions and layout in the table above;
+- toolcache Go 1.25 / 1.26 → `actions/setup-go` resolves offline (cache hit), with
+  `GOROOT_1_25_X64` / `GOROOT_1_26_X64` set as on ubuntu-latest. The default `go` on `PATH` is 1.26.
+  This differs from ubuntu-latest, whose default is Go 1.24: that minor is EOL and deliberately not
+  baked here (see the inclusion policy), so the default is the newest supported minor instead;
 - toolcache Node 22 / 24 → `actions/setup-node` resolves offline (cache hit);
 - toolcache Ruby 3.2 / 3.3 / 3.4 / 4.0 → `ruby/setup-ruby` resolves offline (ruby-builder builds);
-- toolcache PyPy 3.9 / 3.10 / 3.11 → `actions/setup-pypy` resolves offline (cache hit);
+- toolcache PyPy 3.9 / 3.10 / 3.11 → `actions/setup-pypy` resolves offline (cache hit); the 3.11
+  slot is PyPy 8.0;
+- toolcache Java (Temurin 8 / 11 / 17 / 21 / 25) → `actions/setup-java` (`distribution: temurin`)
+  resolves offline: `Java_Temurin-Hotspot_jdk/<version>/x64` links to each installed JDK;
 - Rust via `rustup` (versions in the table above); `cargo`/`rustup` on `PATH`, usable by `runner`;
   native crates build (`build-essential`, `pkg-config`, `libssl-dev` present);
-- common CLIs on `PATH`: `git`/`git-lfs`, `gh`, `ssh` (openssh-client), `rsync`, `jq`/`yq`,
-  `sqlite3`, `cmake`, `clang`, `kubectl`, `helm`, `zstd`/`zip`/`unzip`, plus `yarn`/`pnpm` via
-  `corepack`;
+- common CLIs on `PATH`: `git`/`git-lfs`, `gh`, `ssh` (openssh-client), `gpg`/`gnupg2`, `rsync`,
+  `jq`/`yq`, `sqlite3`, `cmake`, `clang`, `kubectl`, `helm`, `zstd`/`zip`/`unzip`, `yarn` 1.22 (npm,
+  as on ubuntu-latest) and `pnpm` (via `corepack`);
+- npm global prefix `/usr/local` (ubuntu-latest's layout), writable by `runner`, so `npm i -g`
+  needs no `sudo`;
+- Git: `safe.directory = *` in the system gitconfig, and a system `ssh_known_hosts` with github.com
+  (GitHub's published host keys) and ssh.dev.azure.com, as on ubuntu-latest;
+- `openssh-server` (the `ssh` package, as on ubuntu-latest): nothing starts it, and the image ships
+  no SSH host keys — run `sudo ssh-keygen -A` before starting `sshd`;
+- `libicu70` (pinned deb, as on ubuntu-latest) alongside the system `libicu74`, for prebuilt
+  binaries linked against ICU 70;
 - cloud CLIs on `PATH`: `aws` (AWS CLI v2), `az` (Azure CLI, with the `azure-devops` extension),
   `gcloud` (Google Cloud CLI);
-- Java: Eclipse Temurin JDK 8 / 11 / 17 / 21 / 25 (default 17; `JAVA_HOME` + `JAVA_HOME_<v>_X64` set);
-- compilers: GCC 12 / 13 / 14 (+ `gfortran`), Clang/LLVM 16 / 17 / 18 (+ `clang-format`, `clang-tidy`);
+- Java: Eclipse Temurin JDK 8 / 11 / 17 / 21 / 25 (default 17 via `update-java-alternatives`;
+  `JAVA_HOME` + `JAVA_HOME_<v>_X64` set);
+- compilers: GCC 12 / 13 / 14 (+ `gfortran`), Clang/LLVM 16 / 17 / 18 with `clang-format`,
+  `clang-tidy` and `lld` per version, plus `lldb` 18 (noble's `python3-lldb-N` packages conflict,
+  so only one lldb version can be installed — ubuntu-latest likewise ends up with 18 only); the
+  unversioned `clang-format` / `clang-tidy` / `run-clang-tidy` point to 18;
   the unversioned `gcc`/`cc`/`g++`/`make` (build-essential) plus the autotools chain (`autoconf`,
   `automake`, `libtool`, `m4`, `bison`, `flex`, `swig`, `patchelf`, `dpkg-dev`, `fakeroot`, `rpm`);
 - base apt utilities (parity with ubuntu-latest): `shellcheck`, `p7zip-full` (`7z`), `parallel`,
@@ -89,29 +108,47 @@ Included:
   `bind9-dnsutils`, `iproute2`, `iputils-ping`, `netcat-openbsd`, `inetutils-telnet`), and
   `aria2`/`upx`/`mediainfo`/`haveged`/`texinfo`/`sshpass`/`pollinate`;
 - Ruby 3.2 (system) on `PATH`; `zstd` 1.5.7 (built from source);
-- databases: PostgreSQL 16 (PGDG) and MySQL 8.0 — clients and servers;
-- browsers + drivers: Google Chrome + ChromeDriver, Microsoft Edge + msedgedriver, Firefox (from the
-  Mozilla apt repo, not snap) + geckodriver, and Selenium Server (`selenium-server`, runs on Temurin);
+- databases: PostgreSQL 16 (PGDG) and MySQL 8.0 — clients and servers, not running by default.
+  As on ubuntu-latest, MySQL's `root` password is `root`. Start them with
+  `sudo systemctl start mysql.service` / `postgresql.service`: the container has no systemd, so a
+  `systemctl` shim maps `start`/`stop`/`restart`/`reload`/`status`/`is-active` to the SysV `service`
+  scripts and passes everything else to the real `systemctl` (so `enable --now`, `daemon-reload`
+  and the like still need systemd and fail here);
+- browsers + drivers: Google Chrome + ChromeDriver (`CHROME_BIN` set), a pinned Chromium snapshot
+  (`/usr/local/share/chromium`, `chromium` / `chromium-browser`), Microsoft Edge + msedgedriver,
+  Firefox (from the Mozilla apt repo, not snap) + geckodriver, and Selenium Server
+  (`selenium-server`, runs on Temurin);
 - DevOps: Ansible, Bazel/Bazelisk, Podman/Buildah/Skopeo, Kind, Minikube (default container runtime
   is containerd since 1.39), Kustomize, Packer, Bicep, AzCopy (`azcopy`/`azcopy10`), Newman, Parcel,
-  Fastlane, yamllint, the CodeQL bundle (in the toolcache + on `PATH`), the Amazon ECR credential
-  helper (`docker-credential-ecr-login`) and the AWS Session Manager plugin
+  Fastlane, yamllint, the CodeQL bundle (in the toolcache with its `pinned-version` marker + on
+  `PATH`), the Amazon ECR credential helper (`docker-credential-ecr-login` 0.12.0, pinned release
+  binary) and the AWS Session Manager plugin
   (`session-manager-plugin`); plus OpenTofu (`tofu`, MPL-2.0) — the OSS Terraform-compatible IaC
   tool (ubuntu-latest dropped Terraform under its BSL license);
 - the runner **action archive cache** (`ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE=/opt/actionarchivecache`,
   parity with ubuntu-latest's `install-actions-cache.sh`): prebundled tarballs of common actions so
   the runner resolves them offline instead of downloading on every run;
-- environment managers + AWS SAM: Homebrew (`brew`), Miniconda (reachable via `$CONDA`), vcpkg
-  (`$VCPKG_INSTALLATION_ROOT`), and `sam`;
-- JVM build tools: Maven, Gradle, Ant; global npm CLIs `lerna`, `typescript` (`tsc`), `webpack` +
-  `webpack-cli`, `grunt`, `gulp`;
+- environment managers + AWS SAM: Homebrew (`brew`; `HOMEBREW_NO_AUTO_UPDATE=1`), Miniconda (at
+  `$CONDA`, with `conda` linked into `/usr/bin` as on ubuntu-latest; the rest of `$CONDA/bin` stays
+  off `PATH`), vcpkg (`$VCPKG_INSTALLATION_ROOT`), and `sam`;
+- JVM build tools: Maven, Gradle (`GRADLE_HOME`), Ant + `ant-optional` (`ANT_HOME`); global npm
+  CLIs `lerna`, `typescript` (`tsc`), `webpack` + `webpack-cli`, `grunt`, `gulp`;
 - webdriver env vars set as on ubuntu-latest: `CHROMEWEBDRIVER`, `EDGEWEBDRIVER`, `GECKOWEBDRIVER`,
   `SELENIUM_JAR_PATH`;
-- PHP 8.3 + extensions (incl. `memcache`/`memcached`; Xdebug enabled, PCOV installed-but-disabled —
-  parity with ubuntu-latest), Composer, PHPUnit; Pulumi; `n` and `nvm` (`$NVM_DIR`); `git-ftp`;
+- PHP 8.3 with the full ubuntu-latest extension set — the same Ubuntu-archive build ubuntu-latest
+  installs (incl. `memcache`/`memcached`; Xdebug enabled, PCOV installed-but-disabled). `php8.3-dev`
+  provides `php-config`, so `shivammathur/setup-php` reuses the preinstalled PHP instead of
+  reinstalling it on every run. Composer at `/usr/bin/composer` (home `~/.config/composer`, its global `vendor/bin` on
+  `PATH`),
+  PHPUnit; Pulumi; `n` and `nvm` (`$NVM_DIR`); `git-ftp`;
   Sphinx search server;
-- more languages: Swift 6.4, Julia 1.12, Kotlin 2.4, Haskell (GHC 9.14 / Cabal / Stack via `ghcup`),
-  .NET SDK 8/9/10 (+ `nbgv`), PowerShell 7.6 (+ Az / Microsoft.Graph / Pester / PSScriptAnalyzer);
+- more languages: Swift 6.4, Julia 1.13, Kotlin 2.4, Haskell (GHC 9.14 / Cabal / Stack via `ghcup`),
+  .NET SDK 8/9/10 in `/usr/share/dotnet` (`DOTNET_ROOT`; `actions/setup-dotnet`'s default install
+  dir, writable by `runner`, so it reuses the preinstalled SDKs) with `~/.dotnet/tools` on `PATH`
+  (+ `nbgv`), PowerShell 7.6 (+ Az / Microsoft.Graph / Pester / PSScriptAnalyzer);
+- ubuntu-latest's environment contract also includes `ACCEPT_EULA=Y`, `XDG_CONFIG_HOME=$HOME/.config`,
+  `SWIFT_PATH`, `BOOTSTRAP_HASKELL_NONINTERACTIVE=1` and `USE_BAZEL_FALLBACK_VERSION` (Bazel 9.2.0
+  without a `.bazelversion`);
 - web servers: Apache2 and Nginx;
 - Android: full ubuntu-latest matrix via `sdkmanager` — cmdline-tools, platform-tools, every
   `platforms;android-*` and `build-tools` ≥ 34 (incl. the `-ext` platform variants), NDK 27 / 28 / 29,
@@ -152,10 +189,11 @@ Deliberate exceptions:
   `h5py`…) compile without a per-workflow `apt-get` step. Many are NOT on ubuntu-latest — workflows
   relying on them are not portable back to GitHub-hosted runners.
 
-**PEP 668 (externally managed):** the system `python3` is marked externally managed, so a global
-`pip install <pkg>` fails by design. The standard path is `python -m venv` (inside a venv the
-restriction is lifted) or `actions/setup-python` (its toolcache runtimes are not externally managed).
-For CLI tools — `pipx`. This matches ubuntu-latest behaviour.
+**PEP 668 (externally managed):** the system `python3` is marked externally managed, but, as on
+ubuntu-latest, `/etc/pip.conf` sets `break-system-packages = true`, so `pip install <pkg>` into the
+system interpreter works. It can still conflict with apt-managed Python packages, so the
+recommended paths remain `python -m venv`, `actions/setup-python` (toolcache runtimes are not
+externally managed) and, for CLI tools, `pipx`.
 
 ## Notes
 

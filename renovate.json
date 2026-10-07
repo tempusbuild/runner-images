@@ -49,12 +49,6 @@
       "enabled": false
     },
     {
-      "description": "mdformat major is plugin-blocked: mdformat-tables still requires mdformat<0.8, and Renovate does not manage additional_dependencies — bump the hook and its plugins together manually once they support 1.x.",
-      "matchDepNames": ["executablebooks/mdformat"],
-      "matchUpdateTypes": ["major"],
-      "enabled": false
-    },
-    {
       "description": "Rust tracks the official runner image (parity contract), not upstream releases — no auto-PRs; approve from the Dependency Dashboard once actions/runner-images ships the new toolchain.",
       "matchDepNames": ["rust-lang/rust"],
       "dependencyDashboardApproval": true
@@ -422,6 +416,34 @@
       "depNameTemplate": "composer/composer",
       "datasourceTemplate": "github-releases",
       "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG ECR_HELPER_VERSION → awslabs/amazon-ecr-credential-helper. Does NOT bump ECR_HELPER_SHA256.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG ECR_HELPER_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "awslabs/amazon-ecr-credential-helper",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG BAZEL_FALLBACK_VERSION → bazelbuild/bazel (USE_BAZEL_FALLBACK_VERSION for bazelisk).",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG BAZEL_FALLBACK_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "bazelbuild/bazel",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    },
+    {
+      "description": "ARG YARN_VERSION → npm 'yarn' (1.x classic, as on ubuntu-latest).",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
+      "matchStrings": ["ARG YARN_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "yarn",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
     },
     {
       "description": "ARG PHPUNIT_VERSION → sebastianbergmann/phpunit (pinned to 8.x via packageRules). Does NOT bump PHPUNIT_SHA256.",
