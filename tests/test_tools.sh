@@ -28,7 +28,10 @@ for cc in gcc-12 gcc-13 gcc-14 g++-12 g++-13 g++-14 clang-16 clang-17 clang-18 \
   command -v "$cc" >/dev/null || { echo "MISSING: $cc" >&2; fails=$((fails+1)); }
 done
 zstd --version | grep -q 'v1.5.7' || { echo "zstd != 1.5.7: $(zstd --version)" >&2; fails=$((fails+1)); }
-echo "ok: gcc 12/13/14, clang 16/17/18, zstd 1.5.7"
+if [ "$(command -v ninja)" != /usr/local/bin/ninja ] || ! ninja --version | grep -q '^1\.13\.'; then
+  echo "ninja not the pinned 1.13.x release: $(command -v ninja) $(ninja --version)" >&2; fails=$((fails+1))
+fi
+echo "ok: gcc 12/13/14, clang 16/17/18, zstd 1.5.7, ninja 1.13"
 
 for tool in bazel bazelisk kind minikube kustomize packer bicep azcopy azcopy10 tofu \
             podman buildah skopeo docker-credential-ecr-login \
@@ -52,6 +55,8 @@ echo "ok: maven/gradle/ant/lerna"
 for tool in tsc webpack webpack-cli grunt gulp; do
   command -v "$tool" >/dev/null || { echo "MISSING npm global: $tool" >&2; fails=$((fails+1)); }
 done
+# TypeScript 7 runs a native compiler from a platform-specific optional package; -v fails without it.
+tsc -v 2>/dev/null | grep -q '^Version 7\.' || { echo "tsc not runnable or != 7.x: $(tsc -v 2>&1 | head -1)" >&2; fails=$((fails+1)); }
 echo "ok: npm globals (tsc/webpack/webpack-cli/grunt/gulp)"
 
 # Misc tools (Pulumi, n, nvm, git-ftp, Sphinx search); the PHP stack is covered by test_php.sh.
@@ -82,6 +87,8 @@ ah="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
 [ "$(find "$ah/build-tools" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l)" -ge 4 ] || { echo "Android: expected >=4 build-tools" >&2; fails=$((fails+1)); }
 [ -d "$ah/cmake" ] || { echo "Android: missing sdkmanager CMake" >&2; fails=$((fails+1)); }
 [ -d "$ah/extras/google/m2repository" ] || { echo "Android: missing google m2repository extra" >&2; fails=$((fails+1)); }
+# Minor/preview platforms (android-NN.N, android-NN.N-betaN) are part of ubuntu-latest's set too.
+compgen -G "$ah/platforms/android-[0-9]*.[0-9]*" >/dev/null || { echo "Android: no minor platform (android-NN.N) installed" >&2; fails=$((fails+1)); }
 echo "ok: android sdk full matrix (ndk 27/28/29, platforms+build-tools >=34, extras, cmake)"
 
 for tool in aws az gcloud; do

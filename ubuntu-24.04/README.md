@@ -107,7 +107,8 @@ Included:
   compression (`brotli`, `pigz`, `lz4`, `xz-utils`, `zsync`), network diagnostics (`net-tools`,
   `bind9-dnsutils`, `iproute2`, `iputils-ping`, `netcat-openbsd`, `inetutils-telnet`), and
   `aria2`/`upx`/`mediainfo`/`haveged`/`texinfo`/`sshpass`/`pollinate`;
-- Ruby 3.2 (system) on `PATH`; `zstd` 1.5.7 (built from source);
+- Ruby 3.2 (system) on `PATH`; `zstd` 1.5.7 (built from source); `ninja` 1.13 (release binary in
+  `/usr/local/bin`, as on ubuntu-latest; apt `ninja-build` stays for `meson`);
 - databases: PostgreSQL 16 (PGDG) and MySQL 8.0 — clients and servers, not running by default.
   As on ubuntu-latest, MySQL's `root` password is `root`. Start them with
   `sudo systemctl start mysql.service` / `postgresql.service`: the container has no systemd, so a
