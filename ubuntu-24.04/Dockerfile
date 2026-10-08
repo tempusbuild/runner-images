@@ -1091,9 +1091,10 @@ ENV ImageVersion=${IMAGE_VERSION} \
 #   works without an `apt-get update` first;
 # - docker-clean goes after the update (no pkgcache.bin in the layer): apt then keeps downloaded .debs,
 #   so /var/cache/apt/archives can be cached;
-# - /etc/environment mirrors the image ENV, so sudo and login sessions get it through pam_env. Every
-#   build ARG is also exported to RUN, so the ARG names are read from this Dockerfile and dropped,
-#   along with the per-session HOME/HOSTNAME/PWD and BuildKit's predefined proxy ARGs.
+# - /etc/environment mirrors the image ENV, so sudo and login sessions get it through pam_env. It is an
+#   allowlist of the names declared with ENV in this Dockerfile (comment lines dropped first, as BuildKit
+#   does inside continuations), because a RUN also sees build ARGs and builder-injected variables
+#   (proxies, OTEL_*/TRACEPARENT tracing), none of which belong in the image.
 RUN --mount=type=bind,source=Dockerfile,target=/tmp/Dockerfile \
     find /etc/apt/sources.list.d -mindepth 1 ! -name ubuntu.sources -delete \
     && rm -f /etc/cron.daily/google-chrome* /etc/cron.daily/microsoft-edge* \
@@ -1102,14 +1103,14 @@ RUN --mount=type=bind,source=Dockerfile,target=/tmp/Dockerfile \
     && apt-get-update-retry \
     && rm -f /etc/apt/apt.conf.d/docker-clean \
     && python3 -c 'import os, re; \
-build_args = {n for line in re.findall(r"^\s*ARG\s+(.+)$", open("/tmp/Dockerfile").read(), re.M) \
-              for n in re.findall(r"(?:^|\s)([A-Za-z_][A-Za-z0-9_]*)(?==|\s|$)", line)}; \
-assert {"RUNNER_VERSION", "IMAGE_VERSION"} <= build_args, "ARG names not parsed"; \
-deny = build_args | {"HOME", "HOSTNAME", "PWD", "OLDPWD", "SHLVL", "_", "SOURCE_DATE_EPOCH"}; \
-proxies = {"http_proxy", "https_proxy", "ftp_proxy", "no_proxy", "all_proxy"}; \
-env = {k: v for k, v in os.environ.items() if k not in deny and k.lower() not in proxies}; \
-bad = [k for k, v in env.items() if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", k) or "\n" in v \
-       or v[:1] in (chr(34), chr(39)) or v.endswith(chr(92))]; \
+src = re.sub(r"(?m)^[ \t]*#.*\n", "", open("/tmp/Dockerfile").read()).replace(chr(92) + chr(10), " "); \
+names = {n for line in re.findall(r"^\s*ENV\s+(.+)$", src, re.M) \
+         for n in re.findall(r"(?:^|\s)([A-Za-z_][A-Za-z0-9_]*)=", line)}; \
+assert {"ImageOS", "ImageVersion", "LANG", "JAVA_HOME", "PATH"} <= names, "ENV names not parsed"; \
+missing = sorted(n for n in names if n not in os.environ); \
+assert not missing, missing; \
+env = {k: os.environ[k] for k in names}; \
+bad = [k for k, v in env.items() if "\n" in v or v[:1] in (chr(34), chr(39)) or v.endswith(chr(92))]; \
 assert not bad, bad; \
 print("".join(k + "=" + v + "\n" for k, v in sorted(env.items())), end="")' > /etc/environment \
     && chmod 0644 /etc/environment
