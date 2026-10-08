@@ -4,21 +4,21 @@ Full runner image for ARC `gha-runner-scale-set`, label `tempus-ubuntu-24.04-4co
 
 ## Contents
 
-| Component                     | Version                                                                                                                                                                                           | Source (verify before bumping)                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Base                          | Ubuntu 24.04 (noble), pinned by digest `sha256:534baea6…`                                                                                                                                         | hub.docker.com/\_/ubuntu — bump digest on weekly rebuild                              |
-| Actions runner                | `2.338.0` (ARG `RUNNER_VERSION`)                                                                                                                                                                  | github.com/actions/runner/releases                                                    |
-| Node.js                       | LTS, major `22` (ARG `NODE_MAJOR`)                                                                                                                                                                | nodejs.org/en/about/previous-releases                                                 |
-| Python (system)               | 3.12 (system on 24.04) + `pip`, `venv`, dev headers (`python3-dev`)                                                                                                                               | packages.ubuntu.com                                                                   |
-| Python (toolcache, prebake)   | `3.10.22`, `3.11.17`, `3.12.15`, `3.13.16`, `3.14.8` in `/opt/hostedtoolcache/Python/<v>/x64` (ARG `PYTHON_31x`)                                                                                  | actions/python-versions `versions-manifest.json` — same builds `setup-python` fetches |
-| Go (toolcache, prebake)       | `1.25.14`, `1.26.8` — supported minors (1.25 / 1.26) in `/opt/hostedtoolcache/go/<v>/x64` (ARG `GO_125`/`GO_126`)                                                                                 | go.dev/dl — SHA256 from `?mode=json&include=all`; `setup-go` layout (cache hit)       |
-| Rust (rustup)                 | toolchain `1.99.0` (rustup `1.29.1`), default profile = rustc+cargo+rust-std+rustfmt+clippy; `RUSTUP_HOME=/usr/local/rustup`, `CARGO_HOME=/usr/local/cargo` (ARG `RUST_VERSION`/`RUSTUP_VERSION`) | static.rust-lang.org — pinned `rustup-init` + SHA256                                  |
-| pipx                          | `1.16.7`, pinned via `pip` (ARG `PIPX_VERSION`) — isolated installs of Python CLI tools                                                                                                           | PyPI                                                                                  |
-| CMake / Git LFS               | `3.31.12` (+ `4.4.4` as `cmake4`) / `3.8.0` — pinned binaries + SHA256 (ARG `CMAKE_VERSION`/`CMAKE4_VERSION`/`GITLFS_VERSION`)                                                                    | github.com/Kitware/CMake, github.com/git-lfs/git-lfs releases                         |
-| yq (mikefarah)                | `4.54.1` — pinned binary + SHA256 (ARG `YQ_VERSION`)                                                                                                                                              | github.com/mikefarah/yq releases                                                      |
-| GitHub CLI (`gh`)             | from the cli.github.com repo (workflows commonly call `gh`)                                                                                                                                       | cli.github.com                                                                        |
-| Docker CLI + buildx + compose | from the download.docker.com repo                                                                                                                                                                 | docs.docker.com                                                                       |
-| Base tools                    | see `packages.txt` (incl. `zstd` — speeds up `actions/cache`)                                                                                                                                     | —                                                                                     |
+| Component                     | Version                                                                                                                                                                   | Source (verify before bumping)                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Base                          | Ubuntu 24.04 (noble), pinned by digest `sha256:534baea6…`                                                                                                                 | hub.docker.com/\_/ubuntu — bump digest on weekly rebuild                              |
+| Actions runner                | `2.338.0` (ARG `RUNNER_VERSION`)                                                                                                                                          | github.com/actions/runner/releases                                                    |
+| Node.js                       | LTS, major `22` (ARG `NODE_MAJOR`)                                                                                                                                        | nodejs.org/en/about/previous-releases                                                 |
+| Python (system)               | 3.12 (system on 24.04) + `pip`, `venv`, dev headers (`python3-dev`)                                                                                                       | packages.ubuntu.com                                                                   |
+| Python (toolcache, prebake)   | `3.10.22`, `3.11.17`, `3.12.15`, `3.13.16`, `3.14.8` in `/opt/hostedtoolcache/Python/<v>/x64` (ARG `PYTHON_31x`)                                                          | actions/python-versions `versions-manifest.json` — same builds `setup-python` fetches |
+| Go (toolcache, prebake)       | `1.25.14`, `1.26.8` — supported minors (1.25 / 1.26) in `/opt/hostedtoolcache/go/<v>/x64` (ARG `GO_125`/`GO_126`)                                                         | go.dev/dl — SHA256 from `?mode=json&include=all`; `setup-go` layout (cache hit)       |
+| Rust (rustup)                 | toolchain `1.99.0` (rustup `1.29.1`), default profile = rustc+cargo+rust-std+rustfmt+clippy; default homes `~/.rustup` / `~/.cargo` (ARG `RUST_VERSION`/`RUSTUP_VERSION`) | static.rust-lang.org — pinned `rustup-init` + SHA256                                  |
+| pipx                          | `1.16.7`, pinned via `pip` (ARG `PIPX_VERSION`) — isolated installs of Python CLI tools                                                                                   | PyPI                                                                                  |
+| CMake / Git LFS               | `3.31.12` (+ `4.4.4` as `cmake4`) / `3.8.0` — pinned binaries + SHA256 (ARG `CMAKE_VERSION`/`CMAKE4_VERSION`/`GITLFS_VERSION`)                                            | github.com/Kitware/CMake, github.com/git-lfs/git-lfs releases                         |
+| yq (mikefarah)                | `4.54.1` — pinned binary + SHA256 (ARG `YQ_VERSION`)                                                                                                                      | github.com/mikefarah/yq releases                                                      |
+| GitHub CLI (`gh`)             | from the cli.github.com repo (workflows commonly call `gh`)                                                                                                               | cli.github.com                                                                        |
+| Docker CLI + buildx + compose | from the download.docker.com repo                                                                                                                                         | docs.docker.com                                                                       |
+| Base tools                    | see `packages.txt` (incl. `zstd` — speeds up `actions/cache`)                                                                                                             | —                                                                                     |
 
 The table above lists the core pinned components; the **full ubuntu-latest-parity toolset** (all
 languages, toolcaches, DevOps/cloud/DB/browser/mobile tooling) is in
@@ -78,12 +78,15 @@ Included:
   slot is PyPy 8.0;
 - toolcache Java (Temurin 8 / 11 / 17 / 21 / 25) → `actions/setup-java` (`distribution: temurin`)
   resolves offline: `Java_Temurin-Hotspot_jdk/<version>/x64` links to each installed JDK;
-- Rust via `rustup` (versions in the table above); `cargo`/`rustup` on `PATH`, usable by `runner`;
-  native crates build (`build-essential`, `pkg-config`, `libssl-dev` present);
+- Rust via `rustup` (versions in the table above). As on ubuntu-latest, `RUSTUP_HOME`/`CARGO_HOME`
+  are unset and `~/.cargo/bin` is on `PATH`: `~/.rustup` and `~/.cargo` link to the shared install in
+  `/usr/local/rustup` / `/usr/local/cargo`, owned by `runner`, so `cargo install` and `rustup` work
+  without `sudo`; native crates build (`build-essential`, `pkg-config`, `libssl-dev` present);
 - common CLIs on `PATH`: `git`/`git-lfs`, `gh`, `ssh` (openssh-client), `gpg`/`gnupg2`, `rsync`,
   `jq`/`yq`, `sqlite3`, `cmake`, `clang`, `kubectl`, `helm`, `zstd`/`zip`/`unzip`, `yarn` 1.22 (npm,
   as on ubuntu-latest) and `pnpm` (via `corepack`);
-- npm global prefix `/usr/local` (ubuntu-latest's layout), writable by `runner`, so `npm i -g`
+- npm global prefix `/usr/local` (ubuntu-latest's layout): `/usr/local/lib/node_modules` is owned
+  by `runner` and `/usr/local/bin` is world-writable (`0777`, as on ubuntu-latest), so `npm i -g`
   needs no `sudo`;
 - Git: `safe.directory = *` in the system gitconfig, and a system `ssh_known_hosts` with github.com
   (GitHub's published host keys) and ssh.dev.azure.com, as on ubuntu-latest;
@@ -91,10 +94,13 @@ Included:
   no SSH host keys — run `sudo ssh-keygen -A` before starting `sshd`;
 - `libicu70` (pinned deb, as on ubuntu-latest) alongside the system `libicu74`, for prebuilt
   binaries linked against ICU 70;
-- cloud CLIs on `PATH`: `aws` (AWS CLI v2), `az` (Azure CLI, with the `azure-devops` extension),
-  `gcloud` (Google Cloud CLI);
+- cloud CLIs on `PATH`: `aws` (AWS CLI v2), `az` (Azure CLI, with the `azure-devops` extension in
+  `$AZURE_EXTENSION_DIR`, writable by `runner`, so `az extension add` needs no `sudo`), `gcloud`
+  (Google Cloud CLI);
 - Java: Eclipse Temurin JDK 8 / 11 / 17 / 21 / 25 (default 17 via `update-java-alternatives`;
-  `JAVA_HOME` + `JAVA_HOME_<v>_X64` set);
+  `JAVA_HOME` + `JAVA_HOME_<v>_X64` set). The JDK trees are owned by `runner` (ubuntu-latest makes
+  them world-writable); each `cacerts` links to the shared, root-owned
+  `/etc/ssl/certs/adoptium/cacerts`, so `keytool -importcert -cacerts` needs `sudo`;
 - compilers: GCC 12 / 13 / 14 (+ `gfortran`), Clang/LLVM 16 / 17 / 18 with `clang-format`,
   `clang-tidy` and `lld` per version, plus `lldb` 18 (noble's `python3-lldb-N` packages conflict,
   so only one lldb version can be installed — ubuntu-latest likewise ends up with 18 only); the
@@ -109,7 +115,8 @@ Included:
   `aria2`/`upx`/`mediainfo`/`haveged`/`texinfo`/`sshpass`/`pollinate`;
 - Ruby 3.2 (system) on `PATH`; `zstd` 1.5.7 (built from source); `ninja` 1.13 (release binary in
   `/usr/local/bin`, as on ubuntu-latest; apt `ninja-build` stays for `meson`);
-- databases: PostgreSQL 16 (PGDG) and MySQL 8.0 — clients and servers, not running by default.
+- databases: PostgreSQL 16 (PGDG) and MySQL 8.0 — clients and servers, not running at container
+  start (nor are Apache2 and Nginx).
   As on ubuntu-latest, MySQL's `root` password is `root`. Start them with
   `sudo systemctl start mysql.service` / `postgresql.service`: the container has no systemd, so a
   `systemctl` shim maps `start`/`stop`/`restart`/`reload`/`status`/`is-active` to the SysV `service`
@@ -129,9 +136,11 @@ Included:
 - the runner **action archive cache** (`ACTIONS_RUNNER_ACTION_ARCHIVE_CACHE=/opt/actionarchivecache`,
   parity with ubuntu-latest's `install-actions-cache.sh`): prebundled tarballs of common actions so
   the runner resolves them offline instead of downloading on every run;
-- environment managers + AWS SAM: Homebrew (`brew`; `HOMEBREW_NO_AUTO_UPDATE=1`), Miniconda (at
-  `$CONDA`, with `conda` linked into `/usr/bin` as on ubuntu-latest; the rest of `$CONDA/bin` stays
-  off `PATH`), vcpkg (`$VCPKG_INSTALLATION_ROOT`), and `sam`;
+- environment managers + AWS SAM: Homebrew (`HOMEBREW_NO_AUTO_UPDATE=1`; off `PATH` as on
+  ubuntu-latest — run `eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"` to use `brew`),
+  Miniconda (at `$CONDA`, owned by `runner` so `conda` can update its base without `sudo`, with
+  `conda` linked into `/usr/bin` as on ubuntu-latest; the rest of `$CONDA/bin` stays off `PATH`),
+  vcpkg (`$VCPKG_INSTALLATION_ROOT`), and `sam`;
 - JVM build tools: Maven, Gradle (`GRADLE_HOME`), Ant + `ant-optional` (`ANT_HOME`); global npm
   CLIs `lerna`, `typescript` (`tsc`), `webpack` + `webpack-cli`, `grunt`, `gulp`;
 - webdriver env vars set as on ubuntu-latest: `CHROMEWEBDRIVER`, `EDGEWEBDRIVER`, `GECKOWEBDRIVER`,
@@ -141,15 +150,17 @@ Included:
   provides `php-config`, so `shivammathur/setup-php` reuses the preinstalled PHP instead of
   reinstalling it on every run. Composer at `/usr/bin/composer` (home `~/.config/composer`, its global `vendor/bin` on
   `PATH`),
-  PHPUnit; Pulumi; `n` and `nvm` (`$NVM_DIR`); `git-ftp`;
+  PHPUnit; Pulumi; `n` and `nvm` (`$NVM_DIR`, also reachable as `~/.nvm`); `git-ftp`;
   Sphinx search server;
-- more languages: Swift 6.4, Julia 1.13, Kotlin 2.4, Haskell (GHC 9.14 / Cabal / Stack via `ghcup`),
+- more languages: Swift 6.4, Julia 1.13, Kotlin 2.4, Haskell (GHC 9.14 / Cabal / Stack via `ghcup`;
+  `/usr/local/.ghcup`, linked as `~/.ghcup` and writable by `runner`, as on ubuntu-latest),
   .NET SDK 8/9/10 in `/usr/share/dotnet` (`DOTNET_ROOT`; `actions/setup-dotnet`'s default install
   dir, writable by `runner`, so it reuses the preinstalled SDKs) with `~/.dotnet/tools` on `PATH`
   (+ `nbgv`), PowerShell 7.6 (+ Az / Microsoft.Graph / Pester / PSScriptAnalyzer);
-- ubuntu-latest's environment contract also includes `ACCEPT_EULA=Y`, `XDG_CONFIG_HOME=$HOME/.config`,
-  `SWIFT_PATH`, `BOOTSTRAP_HASKELL_NONINTERACTIVE=1` and `USE_BAZEL_FALLBACK_VERSION` (Bazel 9.2.0
-  without a `.bazelversion`);
+- ubuntu-latest's environment contract also includes `ImageOS=ubuntu24`, `ImageVersion` (the image
+  release, `vYYYYMMDD`), `ACCEPT_EULA=Y`, `XDG_CONFIG_HOME=$HOME/.config`, `SWIFT_PATH`,
+  `BOOTSTRAP_HASKELL_NONINTERACTIVE=1` and `USE_BAZEL_FALLBACK_VERSION` (Bazel 9.2.0 without a
+  `.bazelversion`); `LANG=C.UTF-8` is the default locale;
 - web servers: Apache2 and Nginx;
 - Android: full ubuntu-latest matrix via `sdkmanager` — cmdline-tools, platform-tools, every
   `platforms;android-*` and `build-tools` ≥ 34 (incl. the `-ext` platform variants), NDK 27 / 28 / 29,
@@ -204,4 +215,25 @@ externally managed) and, for CLI tools, `pipx`.
   format plus a runner line) with an **Operating System** group (Ubuntu release) and a
   **Runner Image** group (image name, `vYYYYMMDD` version, runner version, and links to this README
   at the build commit and to the ghcr package). The runtime environment surfaces it in the job log.
+- apt sources: as on ubuntu-latest, the Ubuntu archive and Microsoft's prod repo
+  (`packages.microsoft.com/ubuntu/24.04/prod`, `microsoft-prod.list`) stay configured. The other
+  vendor repos used at build time (Docker, NodeSource, GitHub CLI, Azure CLI, Edge, Google, Adoptium,
+  PostgreSQL, Mozilla, git-core PPA) are removed after install, so `apt-get update` in a job stays
+  fast; their keyrings remain in `/etc/apt/keyrings`, so a workflow can re-add a source when it
+  needs one.
+- apt behaves as on ubuntu-latest: the package lists ship with the image (compressed), so
+  `sudo apt-get install` works without an `apt-get update` first (run one for the newest versions);
+  `-y` is implied (`APT::Get::Assume-Yes`); dpkg keeps local config files without prompting and skips
+  fsyncs (`--force-confdef --force-confold --force-unsafe-io`); downloaded `.deb`s stay in
+  `/var/cache/apt/archives`, so that dir can be cached between runs (it is root-owned, so
+  restore/save it with sudo).
+- Unlike on ubuntu-latest (a systemd VM), installing a package does not start its service: the
+  container has no init, so start it explicitly (`sudo systemctl start <svc>` via the shim above, or
+  `sudo service <svc> start`). The preinstalled services (MySQL, PostgreSQL, Apache2, Nginx) are not
+  running when a job starts.
+- `/etc/environment` carries the image's environment (as ubuntu-latest's), so `sudo` and login
+  sessions see the same `ImageOS`, `JAVA_HOME_*`, `ANDROID_*`… as the job; `/etc/default/locale`
+  sets `LANG=C.UTF-8` for them too.
+- Podman/Buildah resolve short image names via `docker.io` then `quay.io`
+  (`unqualified-search-registries`, as on ubuntu-latest).
 - The `minimal` variant (`../ubuntu-24.04-minimal/`) — no Node/Docker, just runner + base.

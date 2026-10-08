@@ -31,6 +31,8 @@ else:
     version = lines[1].split(": ", 1)[-1]
     if not re.fullmatch(r"v\d{8}|dev", version):
         errors.append(f"Version must be vYYYYMMDD (CI) or dev (local): {version!r}")
+    if os.environ.get("ImageVersion") != version:
+        errors.append(f"ImageVersion env != image data Version: {os.environ.get('ImageVersion')!r}")
     if "Image: ubuntu-24.04" not in lines:
         errors.append("missing 'Image: ubuntu-24.04'")
     if f"Runner: {os.environ['RUNNER_VERSION']}" not in lines:

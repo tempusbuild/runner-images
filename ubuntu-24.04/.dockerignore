@@ -1,4 +1,5 @@
-# Allowlist: only files the Dockerfile COPYs reach the build context —
+# Allowlist: only files the Dockerfile COPYs or bind-mounts reach the build context —
 # a stray local file (editor backup, .env) can never leak into a layer.
 *
 !packages.txt
+!Dockerfile

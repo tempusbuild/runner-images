@@ -40,11 +40,21 @@ for tool in bazel bazelisk kind minikube kustomize packer bicep azcopy azcopy10 
 done
 echo "ok: devops tools present (bazel/kind/minikube/kustomize/packer/bicep/azcopy/ecr-cred-helper/ssm-plugin/podman/buildah/skopeo/ansible/yamllint/newman/parcel/fastlane/codeql)"
 
-for tool in brew vcpkg sam; do
+for tool in vcpkg sam; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
 done
+# Homebrew is off PATH (as ubuntu-latest) until a job evaluates its shellenv.
+brew_bin=/home/linuxbrew/.linuxbrew/bin/brew
+[ -x "$brew_bin" ] || { echo "MISSING: $brew_bin" >&2; fails=$((fails+1)); }
+command -v brew >/dev/null && { echo "brew unexpectedly on PATH: $(command -v brew)" >&2; fails=$((fails+1)); }
+( eval "$("$brew_bin" shellenv)" && [ "$(command -v brew)" = "$brew_bin" ] ) \
+  || { echo "brew shellenv does not put brew on PATH" >&2; fails=$((fails+1)); }
 [ -x "${CONDA:-/usr/share/miniconda}/bin/conda" ] || { echo "MISSING: conda at ${CONDA:-/usr/share/miniconda}" >&2; fails=$((fails+1)); }
-echo "ok: homebrew, vcpkg, aws-sam, miniconda (\$CONDA)"
+# conda can update its base env without sudo.
+for d in "$CONDA" "$CONDA/bin" "$CONDA/pkgs" "$CONDA/conda-meta"; do
+  [ -w "$d" ] || { echo "$d not writable by $(id -un)" >&2; fails=$((fails+1)); }
+done
+echo "ok: homebrew (off PATH, shellenv), vcpkg, aws-sam, miniconda (\$CONDA, writable)"
 
 for tool in mvn gradle ant lerna; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
@@ -65,6 +75,10 @@ for tool in git-ftp pulumi n; do
 done
 { command -v searchd >/dev/null || command -v indexer >/dev/null; } || { echo "MISSING sphinxsearch" >&2; fails=$((fails+1)); }
 [ -s "${NVM_DIR:-/usr/local/nvm}/nvm.sh" ] || { echo "MISSING nvm at ${NVM_DIR:-unset}" >&2; fails=$((fails+1)); }
+# ~/.nvm links to $NVM_DIR, so scripts that hardcode `source ~/.nvm/nvm.sh` work.
+if [ "$(readlink -f "$HOME/.nvm")" != "$NVM_DIR" ] || ! bash -c 'source ~/.nvm/nvm.sh && nvm --version' >/dev/null; then
+  echo "\$HOME/.nvm/nvm.sh not usable" >&2; fails=$((fails+1))
+fi
 echo "ok: git-ftp, pulumi, n, nvm, sphinxsearch"
 
 for tool in apache2 nginx; do
@@ -95,6 +109,11 @@ for tool in aws az gcloud; do
   command -v "$tool" >/dev/null || { echo "MISSING: $tool" >&2; fails=$((fails+1)); }
   echo "ok: $tool"
 done
+# The shared Azure CLI extension dir is writable, so `az extension add` needs no sudo.
+[ -w "${AZURE_EXTENSION_DIR:-/nonexistent}" ] || { echo "AZURE_EXTENSION_DIR not writable: ${AZURE_EXTENSION_DIR:-unset}" >&2; fails=$((fails+1)); }
+az_ext=$(az extension list --query '[].name' -o tsv 2>/dev/null || true)
+grep -qx azure-devops <<<"$az_ext" || { echo "az extension azure-devops missing" >&2; fails=$((fails+1)); }
+echo "ok: az extensions (azure-devops) in a writable AZURE_EXTENSION_DIR"
 
 # Databases: clients on PATH + servers present (PostgreSQL 16, MySQL 8.0).
 psql --version | grep -q ' 16\.' || { echo "psql != 16: $(psql --version)" >&2; fails=$((fails+1)); }
@@ -249,6 +268,17 @@ done
   || { echo "XDG_CONFIG_HOME bad: ${XDG_CONFIG_HOME:-unset}" >&2; fails=$((fails+1)); }
 compgen -G "${RUNNER_TOOL_CACHE}/CodeQL/*/x64/pinned-version" >/dev/null || { echo "MISSING CodeQL pinned-version marker" >&2; fails=$((fails+1)); }
 echo "ok: env contract (GOROOT_*_X64, ACCEPT_EULA, HOMEBREW_*, SWIFT_PATH, XDG_CONFIG_HOME, bazel fallback) + CodeQL marker"
+
+# Only the Ubuntu archive and Microsoft's prod repo stay configured (as ubuntu-latest); the other
+# vendor keyrings remain for re-adding.
+extra_sources=$(find /etc/apt/sources.list.d -mindepth 1 ! -name ubuntu.sources ! -name microsoft-prod.list)
+[ -z "$extra_sources" ] || { echo "third-party apt sources left: ${extra_sources//$'\n'/ }" >&2; fails=$((fails+1)); }
+grep -qx 'deb \[arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg\] https://packages.microsoft.com/ubuntu/24.04/prod noble main' \
+  /etc/apt/sources.list.d/microsoft-prod.list 2>/dev/null || { echo "microsoft-prod.list missing or unexpected" >&2; fails=$((fails+1)); }
+for k in docker.asc microsoft.gpg; do
+  [ -s "/etc/apt/keyrings/$k" ] || { echo "MISSING: apt keyring $k" >&2; fails=$((fails+1)); }
+done
+echo "ok: apt sources = Ubuntu archive + Microsoft prod"
 
 [ "$fails" -eq 0 ] || { echo "SMOKE FAILURES (tools): $fails" >&2; exit 1; }
 echo "OK: base tools present"
