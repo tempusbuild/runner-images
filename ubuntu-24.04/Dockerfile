@@ -13,7 +13,7 @@ ARG ACTION_ARCHIVE_CACHE_VERSION=1.0.58
 ARG ACTION_ARCHIVE_CACHE_SHA256=f5e80269a8357e3509a7e1c5eb146c5743fb02b3b569e96c967bf6606f0ddbf1
 ARG NODE_MAJOR=22
 # Fresh npm: npm's bundled deps from NodeSource pull in CVEs.
-ARG NPM_VERSION=11.21.0
+ARG NPM_VERSION=12.2.0
 ARG TARGETARCH=amd64
 # libicu70 from the jammy pool (as ubuntu-latest's configure-dpkg.sh) for prebuilt binaries linked
 # against ICU 70; SHA512 is the one ubuntu-latest pins.
