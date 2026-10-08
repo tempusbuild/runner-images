@@ -31,7 +31,7 @@ build:
 # smoke tests inside the full image
 [group('full')]
 test: build
-    docker run --rm -v "$PWD/tests:/tests:ro" {{ image }} bash -c 'for t in /tests/*.sh; do echo "== $t =="; bash "$t" || exit 1; done'
+    docker run --rm -v "$PWD/tests:/tests:ro" {{ image }} bash -c 'rc=0; failed=""; for t in /tests/*.sh; do echo "== $t =="; bash "$t" || { rc=1; failed="$failed $t"; }; done; [ "$rc" -eq 0 ] || echo "FAILED:$failed"; exit $rc'
 
 # vulnerability scan of the full image (exceptions in .trivyignore.yaml)
 [group('full')]

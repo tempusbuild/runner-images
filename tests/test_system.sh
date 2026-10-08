@@ -34,6 +34,13 @@ done
 while IFS='=' read -r k v; do
   [ "${!k-}" = "$v" ] || fail "/etc/environment ${k} differs from the image ENV"
 done < /etc/environment
+# Reverse direction: under a plain `docker run` (as CI runs these tests) the process env is the image
+# ENV plus what the runtime and bash add, so every other variable must be in /etc/environment too.
+while IFS= read -r line; do
+  k="${line%%=*}"
+  case "$k" in HOME|HOSTNAME|PWD|OLDPWD|SHLVL|_|TERM|container) continue ;; esac
+  grep -qxF -- "$line" /etc/environment || fail "image ENV ${k} missing from /etc/environment"
+done < <(env)
 sudo_env=$(sudo env)
 for v in ImageOS ImageVersion ANDROID_HOME JAVA_HOME_17_X64 HOMEBREW_NO_AUTO_UPDATE; do
   grep -qxF "${v}=${!v-}" <<<"$sudo_env" || fail "sudo env lacks ${v} (pam_env)"

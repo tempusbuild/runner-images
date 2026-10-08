@@ -76,7 +76,9 @@ jobs:
       - name: Smoke tests
         run: |
           docker run --rm -v "$PWD/tests:/tests:ro" tempusbuild/runner-ubuntu-24.04:pr \
-            bash -c 'rc=0; for t in /tests/*.sh; do echo "== $t =="; bash "$t" || rc=1; done; exit $rc'
+            bash -c 'rc=0; failed=""
+              for t in /tests/*.sh; do echo "== $t =="; bash "$t" || { rc=1; failed="$failed $t"; }; done
+              [ "$rc" -eq 0 ] || echo "FAILED:$failed"; exit $rc'
       # OS-scoped gate (scanners=vuln, vuln-type=os): secrets via gitleaks + Dockle; bundled-tool
       # library CVEs tracked via pinned versions, not gated — full rationale in SECURITY.md.
       - name: Trivy scan
