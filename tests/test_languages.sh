@@ -105,12 +105,22 @@ echo "ok: default go on PATH $(go version)"
 
 rustc --version | grep -q '1.99.0' || { echo "rustc != 1.99.0: $(rustc --version)" >&2; fails=$((fails+1)); }
 cargo --version >/dev/null
+# rustup/cargo use their default homes (RUSTUP_HOME/CARGO_HOME unset, as ubuntu-latest): ~/.rustup and
+# ~/.cargo link to the shared, runner-owned install, so crates and toolchains land there.
+[ -z "${RUSTUP_HOME:-}" ] && [ -z "${CARGO_HOME:-}" ] || { echo "RUSTUP_HOME/CARGO_HOME set" >&2; fails=$((fails+1)); }
+[ "$(command -v cargo)" = "$HOME/.cargo/bin/cargo" ] || { echo "cargo not from ~/.cargo/bin: $(command -v cargo)" >&2; fails=$((fails+1)); }
+[ "$(readlink -f "$HOME/.cargo/registry")" = /usr/local/cargo/registry ] && [ -w "$HOME/.cargo" ] \
+  || { echo "\$HOME/.cargo does not resolve to a writable /usr/local/cargo" >&2; fails=$((fails+1)); }
+[ "$(readlink -f "$HOME/.rustup")" = /usr/local/rustup ] || { echo "\$HOME/.rustup does not resolve to /usr/local/rustup" >&2; fails=$((fails+1)); }
+rust_toolchain=$(rustup show active-toolchain 2>/dev/null || true)
+[[ "$rust_toolchain" == 1.99.0* ]] || { echo "rustup active toolchain != 1.99.0: ${rust_toolchain}" >&2; fails=$((fails+1)); }
+cargo install --list >/dev/null || { echo "cargo install --list failed" >&2; fails=$((fails+1)); }
 echo "ok: rust $(rustc --version), $(cargo --version)"
 
 # Java: default Temurin 17 on PATH + every JDK reachable via JAVA_HOME_<v>_X64 (parity).
 java -version 2>&1 | grep -q 'version "17\.' || { echo "default java != 17: $(java -version 2>&1 | head -1)" >&2; fails=$((fails+1)); }
 for jh in JAVA_HOME_8_X64 JAVA_HOME_11_X64 JAVA_HOME_17_X64 JAVA_HOME_21_X64 JAVA_HOME_25_X64; do
-  d="${!jh}"; [ -x "${d}/bin/javac" ] || { echo "MISSING $jh ($d)" >&2; fails=$((fails+1)); }
+  d="${!jh-}"; [ -x "${d}/bin/javac" ] || { echo "MISSING $jh ($d)" >&2; fails=$((fails+1)); }
 done
 echo "ok: java default 17 + JDKs 8/11/17/21/25"
 
@@ -118,7 +128,7 @@ echo "ok: java default 17 + JDKs 8/11/17/21/25"
 for n in 8 11 17 21 25; do
   jh="JAVA_HOME_${n}_X64"; found=0
   for d in "${RUNNER_TOOL_CACHE}/Java_Temurin-Hotspot_jdk/${n}".*; do
-    [ "$(readlink -f "$d/x64")" = "${!jh}" ] && [ -f "$d/x64.complete" ] && found=1
+    [ "$(readlink -f "$d/x64")" = "${!jh-}" ] && [ -f "$d/x64.complete" ] && found=1
   done
   [ "$found" -eq 1 ] || { echo "MISSING Java ${n} toolcache entry" >&2; fails=$((fails+1)); }
 done
@@ -129,6 +139,13 @@ done
 [ -x "${GRADLE_HOME:-/nonexistent}/bin/gradle" ] || { echo "GRADLE_HOME bad: ${GRADLE_HOME:-unset}" >&2; fails=$((fails+1)); }
 echo "ok: Java toolcache 8/11/17/21/25, alternatives on 17, ANT_HOME, GRADLE_HOME"
 
+# JDK trees are runner-owned (ubuntu-latest makes them world-writable), so a JDK can be modified
+# without sudo. cacerts stays root-owned: it links to the shared adoptium-ca-certificates store.
+for jh in JAVA_HOME_8_X64 JAVA_HOME_11_X64 JAVA_HOME_17_X64 JAVA_HOME_21_X64 JAVA_HOME_25_X64; do
+  [ -w "$(readlink -f "${!jh-}")/lib" ] || [ -w "$(readlink -f "${!jh-}")/jre/lib" ] \
+    || { echo "$jh not writable by $(id -un)" >&2; fails=$((fails+1)); }
+done
+
 # Ruby (system default on PATH, parity with ubuntu-latest).
 ruby --version | grep -q 'ruby 3.2' || { echo "ruby != 3.2: $(ruby --version)" >&2; fails=$((fails+1)); }
 echo "ok: ruby $(ruby --version)"
@@ -137,6 +154,10 @@ swift --version >/dev/null 2>&1 || { echo "swift fails to run" >&2; fails=$((fai
 julia --version | grep -q '1.13' || { echo "julia != 1.13: $(julia --version)" >&2; fails=$((fails+1)); }
 { kotlinc -version 2>&1 | grep -q '2.4'; } || { echo "kotlin != 2.4" >&2; fails=$((fails+1)); }
 ghc --version | grep -q '9.14' || { echo "ghc != 9.14: $(ghc --version)" >&2; fails=$((fails+1)); }
+# ghcup's tree is runner-writable and ~/.ghcup links to it (as ubuntu-latest).
+[ "${GHCUP_INSTALL_BASE_PREFIX:-}" = /usr/local ] && [ -w /usr/local/.ghcup ] && [ "$(readlink -f "$HOME/.ghcup")" = /usr/local/.ghcup ] \
+  || { echo "ghcup home not shared/writable (GHCUP_INSTALL_BASE_PREFIX=${GHCUP_INSTALL_BASE_PREFIX:-unset})" >&2; fails=$((fails+1)); }
+ghcup --offline set cabal "$(cabal --numeric-version)" >/dev/null 2>&1 || { echo "ghcup set fails as $(id -un)" >&2; fails=$((fails+1)); }
 dotnet --list-sdks >/dev/null 2>&1 || { echo "dotnet fails to run" >&2; fails=$((fails+1)); }
 # .NET at setup-dotnet's default dir, writable by runner, global tools dir on PATH.
 [ "${DOTNET_ROOT:-}" = /usr/share/dotnet ] && [ "$(readlink -f "$(command -v dotnet)")" = /usr/share/dotnet/dotnet ] \

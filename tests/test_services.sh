@@ -6,6 +6,12 @@ fails=0
 # `sudo systemctl start <svc>` is mapped onto the SysV service scripts.
 [ "$(command -v systemctl)" = /usr/local/bin/systemctl ] || { echo "systemctl shim not first on PATH" >&2; fails=$((fails+1)); }
 
+# Nothing runs at container start: the preinstalled services must be started explicitly.
+for svc in mysql postgresql apache2 nginx; do
+  if sudo service "$svc" status >/dev/null 2>&1; then echo "$svc running at container start" >&2; fails=$((fails+1)); fi
+done
+echo "ok: mysql/postgresql/apache2/nginx not running at start"
+
 wait_for() {
   for _ in $(seq 1 30); do "$@" >/dev/null 2>&1 && return 0; sleep 2; done
   return 1
