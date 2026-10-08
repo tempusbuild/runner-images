@@ -177,7 +177,7 @@ ARG GRADLE_SHA256=bafd5ce9cfaea0fbccfdc8439a1ac42fbd4cd9c89dc9a988228d8a2639a58e
 # Misc tools: Pulumi (pinned tarball), nvm (git tag), n (npm); Composer + PHPUnit (pinned phars).
 # PHP series = ubuntu-latest toolset-2404.json php.versions.
 ARG PHP_VERSION=8.3
-ARG PULUMI_VERSION=3.267.0
+ARG PULUMI_VERSION=3.268.0
 ARG PULUMI_SHA256=527c1ce7c16cb38525a96d55422f221e819476e2b0743ae55c9862ad775ae10a
 # OpenTofu (MPL-2.0, OSS) — Terraform-compatible IaC; ubuntu-latest dropped Terraform (BSL), so this
 # is a deliberate OSS extra beyond strict parity.
