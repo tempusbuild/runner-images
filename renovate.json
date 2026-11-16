@@ -21,7 +21,9 @@
   "labels": ["dependencies"],
   "prHourlyLimit": 2,
   "prConcurrentLimit": 5,
-  "dependencyDashboard": true,
+  "dependencyDashboard": {
+    "enabled": true
+  },
   "configMigration": true,
   "packageRules": [
     {
