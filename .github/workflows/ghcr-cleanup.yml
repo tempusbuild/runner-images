@@ -20,10 +20,10 @@ jobs:
     permissions:
       packages: write   # delete untagged container versions
     steps:
-      - uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed  # v2.22.0
+      - uses: step-security/harden-runner@aebdcf6156ab6691adf63218240e476564a1ed4c  # v2.23.0
         with:
           egress-policy: audit
-      - uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f  # v1.2.2
+      - uses: dataaxiom/ghcr-cleanup-action@ac45a8c04b1eb4b27974ca79a0a74f344c93664b  # v1.3.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           package: runner-ubuntu-24.04
